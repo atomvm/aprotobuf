@@ -4,17 +4,17 @@
 %  SPDX-License-Identifier: Apache-2.0
 %
 
-{application, aprotobuf,
- [{description, "Protobuf implementation optimized for AtomVM."},
-  {vsn, "0.1.0"},
-  {registered, []},
-  {applications,
-   [kernel,
-    stdlib
-   ]},
-  {env,[]},
-  {modules, []},
+{application, aprotobuf, [
+    {description, "Protobuf implementation optimized for AtomVM."},
+    {vsn, "0.1.0"},
+    {registered, []},
+    {applications, [
+        kernel,
+        stdlib
+    ]},
+    {env, []},
+    {modules, []},
 
-  {licenses, ["Apache 2.0"]},
-  {links, [{"GitHub", "https://github.com/atomvm/aprotobuf"}]}
- ]}.
+    {licenses, ["Apache 2.0"]},
+    {links, [{"GitHub", "https://github.com/atomvm/aprotobuf"}]}
+]}.

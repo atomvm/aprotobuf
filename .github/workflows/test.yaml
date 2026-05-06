@@ -12,14 +12,16 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        otp: ['26.0']
-        rebar3: ['3.22.1']
+        otp: ['28.0']
+        rebar3: ['3.24.0']
     steps:
       - uses: actions/checkout@v2
       - uses: erlef/setup-beam@v1
         with:
           otp-version: ${{matrix.otp}}
           rebar3-version: ${{matrix.rebar3}}
+      - name: Format check
+        run: rebar3 fmt --check
       - name: Compile
         run: rebar3 compile
       - name: Test
