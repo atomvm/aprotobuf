@@ -1,5 +1,5 @@
 %
-% This file is part of uProtoBuf.
+% This file is part of aprotobuf.
 %
 % Copyright 2023 Davide Bettio <davide@uninstall.it>
 %
@@ -18,7 +18,7 @@
 % SPDX-License-Identifier: Apache-2.0
 %
 
--module(uprotobuf_decoder).
+-module(aprotobuf_decoder).
 -export([parse/2, transform_schema/1]).
 
 transform_schema(Schema) ->

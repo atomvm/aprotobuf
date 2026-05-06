@@ -4,8 +4,8 @@
 %  SPDX-License-Identifier: Apache-2.0
 %
 
-{application, uprotobuf,
- [{description, "μ protocol buffers library."},
+{application, aprotobuf,
+ [{description, "Protobuf implementation optimized for AtomVM."},
   {vsn, "0.1.0"},
   {registered, []},
   {applications,
@@ -16,5 +16,5 @@
   {modules, []},
 
   {licenses, ["Apache 2.0"]},
-  {links, [{"GitHub", "https://github.com/bettio/uprotobuf"}]}
+  {links, [{"GitHub", "https://github.com/atomvm/aprotobuf"}]}
  ]}.

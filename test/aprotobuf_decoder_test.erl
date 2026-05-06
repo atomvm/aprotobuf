@@ -1,5 +1,5 @@
 %
-% This file is part of uProtoBuf.
+% This file is part of aprotobuf.
 %
 % Copyright 2023 Davide Bettio <davide@uninstall.it>
 %
@@ -18,7 +18,7 @@
 % SPDX-License-Identifier: Apache-2.0
 %
 
--module(uprotobuf_decoder_test).
+-module(aprotobuf_decoder_test).
 
 -include_lib("eunit/include/eunit.hrl").
 
@@ -53,23 +53,23 @@ transform_schema_test() ->
             }},
         3 => {c, string}
     },
-    ?assertEqual(ExpectedSchema, uprotobuf_decoder:transform_schema(Schema)).
+    ?assertEqual(ExpectedSchema, aprotobuf_decoder:transform_schema(Schema)).
 
 decode_varint_test() ->
     Schema = #{
         a => {1, int32}
     },
-    DecoderSchema = uprotobuf_decoder:transform_schema(Schema),
-    ?assertEqual(#{a => 150}, uprotobuf_decoder:parse(<<16#08, 16#96, 16#01>>, DecoderSchema)).
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(#{a => 150}, aprotobuf_decoder:parse(<<16#08, 16#96, 16#01>>, DecoderSchema)).
 
 decode_string_test() ->
     Schema = #{
         b => {2, string}
     },
-    DecoderSchema = uprotobuf_decoder:transform_schema(Schema),
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
     ?assertEqual(
         #{b => <<"testing">>},
-        uprotobuf_decoder:parse(
+        aprotobuf_decoder:parse(
             <<16#12, 16#07, 16#74, 16#65, 16#73, 16#74, 16#69, 16#6E, 16#67>>, DecoderSchema
         )
     ).
@@ -78,10 +78,10 @@ decode_submsg_test() ->
     Schema = #{
         c => {3, #{a => {1, int32}}}
     },
-    DecoderSchema = uprotobuf_decoder:transform_schema(Schema),
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
     ?assertEqual(
         #{c => #{a => 150}},
-        uprotobuf_decoder:parse(<<16#1A, 16#03, 16#08, 16#96, 16#01>>, DecoderSchema)
+        aprotobuf_decoder:parse(<<16#1A, 16#03, 16#08, 16#96, 16#01>>, DecoderSchema)
     ).
 
 decode_int32_string_int32_message_test() ->
@@ -93,8 +93,8 @@ decode_int32_string_int32_message_test() ->
         c => {3, string},
         d => {4, int32}
     },
-    DecoderSchema = uprotobuf_decoder:transform_schema(Schema),
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
     ?assertEqual(
         #{b => 5, c => <<"Hello World">>, d => 1989},
-        uprotobuf_decoder:parse(Encoded, DecoderSchema)
+        aprotobuf_decoder:parse(Encoded, DecoderSchema)
     ).
