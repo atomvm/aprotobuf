@@ -302,3 +302,253 @@ decode_uint64_complex_test() ->
             DecoderSchema
         )
     ).
+
+decode_sint32_minus_one_test() ->
+    Schema = #{
+        a => {1, sint32}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(#{a => -1}, aprotobuf_decoder:parse(<<16#08, 16#01>>, DecoderSchema)).
+
+decode_sint32_minus_42_test() ->
+    Schema = #{
+        a => {1, sint32}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(#{a => -42}, aprotobuf_decoder:parse(<<16#08, 16#53>>, DecoderSchema)).
+
+decode_sint32_max_test() ->
+    Schema = #{
+        a => {1, sint32}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => 2147483647},
+        aprotobuf_decoder:parse(
+            <<16#08, 16#FE, 16#FF, 16#FF, 16#FF, 16#0F>>, DecoderSchema
+        )
+    ).
+
+decode_sint32_min_test() ->
+    Schema = #{
+        a => {1, sint32}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => -2147483648},
+        aprotobuf_decoder:parse(
+            <<16#08, 16#FF, 16#FF, 16#FF, 16#FF, 16#0F>>, DecoderSchema
+        )
+    ).
+
+decode_sint32_complex_pos_test() ->
+    Schema = #{
+        a => {1, sint32}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => 16#6CAFE123},
+        aprotobuf_decoder:parse(
+            <<16#08, 16#C6, 16#84, 16#FF, 16#CA, 16#0D>>, DecoderSchema
+        )
+    ).
+
+decode_sint32_complex_neg_test() ->
+    Schema = #{
+        a => {1, sint32}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => -16#11CAFE01},
+        aprotobuf_decoder:parse(
+            <<16#08, 16#81, 16#F8, 16#D7, 16#9C, 16#02>>, DecoderSchema
+        )
+    ).
+
+decode_sint32_zero_test() ->
+    Schema = #{
+        a => {1, sint32}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(#{a => 0}, aprotobuf_decoder:parse(<<16#08, 16#00>>, DecoderSchema)).
+
+decode_sint32_one_test() ->
+    Schema = #{
+        a => {1, sint32}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(#{a => 1}, aprotobuf_decoder:parse(<<16#08, 16#02>>, DecoderSchema)).
+
+decode_sint32_42_test() ->
+    Schema = #{
+        a => {1, sint32}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(#{a => 42}, aprotobuf_decoder:parse(<<16#08, 16#54>>, DecoderSchema)).
+
+decode_sint32_1000_test() ->
+    Schema = #{
+        a => {1, sint32}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => 1000},
+        aprotobuf_decoder:parse(<<16#08, 16#D0, 16#0F>>, DecoderSchema)
+    ).
+
+decode_sint32_minus_1000_test() ->
+    Schema = #{
+        a => {1, sint32}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => -1000},
+        aprotobuf_decoder:parse(<<16#08, 16#CF, 16#0F>>, DecoderSchema)
+    ).
+
+decode_sint32_66000_test() ->
+    Schema = #{
+        a => {1, sint32}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => 66000},
+        aprotobuf_decoder:parse(<<16#08, 16#A0, 16#87, 16#08>>, DecoderSchema)
+    ).
+
+decode_sint32_minus_66000_test() ->
+    Schema = #{
+        a => {1, sint32}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => -66000},
+        aprotobuf_decoder:parse(<<16#08, 16#9F, 16#87, 16#08>>, DecoderSchema)
+    ).
+
+decode_sint64_minus_one_test() ->
+    Schema = #{
+        a => {1, sint64}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(#{a => -1}, aprotobuf_decoder:parse(<<16#08, 16#01>>, DecoderSchema)).
+
+decode_sint64_minus_42_test() ->
+    Schema = #{
+        a => {1, sint64}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(#{a => -42}, aprotobuf_decoder:parse(<<16#08, 16#53>>, DecoderSchema)).
+
+decode_sint64_max_test() ->
+    Schema = #{
+        a => {1, sint64}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => 9223372036854775807},
+        aprotobuf_decoder:parse(
+            <<16#08, 16#FE, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#01>>,
+            DecoderSchema
+        )
+    ).
+
+decode_sint64_min_test() ->
+    Schema = #{
+        a => {1, sint64}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => -9223372036854775808},
+        aprotobuf_decoder:parse(
+            <<16#08, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#01>>,
+            DecoderSchema
+        )
+    ).
+
+decode_sint64_complex_pos_test() ->
+    Schema = #{
+        a => {1, sint64}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => 16#6543CAFE1234ABCD},
+        aprotobuf_decoder:parse(
+            <<16#08, 16#9A, 16#AF, 16#A5, 16#A3, 16#C2, 16#BF, 16#E5, 16#C3, 16#CA, 16#01>>,
+            DecoderSchema
+        )
+    ).
+
+decode_sint64_complex_neg_test() ->
+    Schema = #{
+        a => {1, sint64}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => -16#1234CAFE9876ABCD},
+        aprotobuf_decoder:parse(
+            <<16#08, 16#99, 16#AF, 16#B5, 16#87, 16#D3, 16#BF, 16#E5, 16#B4, 16#24>>,
+            DecoderSchema
+        )
+    ).
+
+decode_sint64_zero_test() ->
+    Schema = #{
+        a => {1, sint64}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(#{a => 0}, aprotobuf_decoder:parse(<<16#08, 16#00>>, DecoderSchema)).
+
+decode_sint64_one_test() ->
+    Schema = #{
+        a => {1, sint64}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(#{a => 1}, aprotobuf_decoder:parse(<<16#08, 16#02>>, DecoderSchema)).
+
+decode_sint64_42_test() ->
+    Schema = #{
+        a => {1, sint64}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(#{a => 42}, aprotobuf_decoder:parse(<<16#08, 16#54>>, DecoderSchema)).
+
+decode_sint64_1000_test() ->
+    Schema = #{
+        a => {1, sint64}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => 1000},
+        aprotobuf_decoder:parse(<<16#08, 16#D0, 16#0F>>, DecoderSchema)
+    ).
+
+decode_sint64_minus_1000_test() ->
+    Schema = #{
+        a => {1, sint64}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => -1000},
+        aprotobuf_decoder:parse(<<16#08, 16#CF, 16#0F>>, DecoderSchema)
+    ).
+
+decode_sint64_66000_test() ->
+    Schema = #{
+        a => {1, sint64}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => 66000},
+        aprotobuf_decoder:parse(<<16#08, 16#A0, 16#87, 16#08>>, DecoderSchema)
+    ).
+
+decode_sint64_minus_66000_test() ->
+    Schema = #{
+        a => {1, sint64}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => -66000},
+        aprotobuf_decoder:parse(<<16#08, 16#9F, 16#87, 16#08>>, DecoderSchema)
+    ).

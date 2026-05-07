@@ -117,6 +117,10 @@ cast(Value, uint32) ->
     Value;
 cast(Value, uint64) ->
     Value;
+cast(Value, sint32) ->
+    (Value bsr 1) bxor -(Value band 1);
+cast(Value, sint64) ->
+    (Value bsr 1) bxor -(Value band 1);
 cast(Value, {enum, IntToLabels}) ->
     case maps:find(Value, IntToLabels) of
         {ok, Label} -> Label;

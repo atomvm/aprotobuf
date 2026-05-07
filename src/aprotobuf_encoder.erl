@@ -63,6 +63,16 @@ encode_field(FieldNum, V, uint64) when is_integer(V), V >= 0, V < (1 bsl 64) ->
     [encode_varint(FieldNum bsl 3), encode_varint(V)];
 encode_field(_FieldNum, _V, uint64) ->
     error(badarg);
+encode_field(FieldNum, V, sint32) when is_integer(V), V >= -(1 bsl 31), V < (1 bsl 31) ->
+    Z = ((V bsl 1) bxor (V bsr 31)) band 16#FFFFFFFF,
+    [encode_varint(FieldNum bsl 3), encode_varint(Z)];
+encode_field(_FieldNum, _V, sint32) ->
+    error(badarg);
+encode_field(FieldNum, V, sint64) when is_integer(V), V >= -(1 bsl 63), V < (1 bsl 63) ->
+    Z = ((V bsl 1) bxor (V bsr 63)) band 16#FFFFFFFFFFFFFFFF,
+    [encode_varint(FieldNum bsl 3), encode_varint(Z)];
+encode_field(_FieldNum, _V, sint64) ->
+    error(badarg);
 encode_field(FieldNum, V, sfixed32) ->
     [encode_varint((FieldNum bsl 3) bor ?FIXED32_TAG), encode_sfixed32(V)];
 encode_field(FieldNum, V, MapSchema) when is_map(MapSchema) ->
