@@ -108,6 +108,11 @@ cast(Value, int32) ->
         0 -> Value;
         _ -> Value - (1 bsl 64)
     end;
+cast(Value, int64) ->
+    case Value bsr 63 of
+        0 -> Value;
+        _ -> Value - (1 bsl 64)
+    end;
 cast(Value, {enum, IntToLabels}) ->
     case maps:find(Value, IntToLabels) of
         {ok, Label} -> Label;

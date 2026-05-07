@@ -149,3 +149,80 @@ decode_int32_min_test() ->
             DecoderSchema
         )
     ).
+
+decode_int64_two_to_31_test() ->
+    Schema = #{
+        a => {1, int64}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => 2147483648},
+        aprotobuf_decoder:parse(
+            <<16#08, 16#80, 16#80, 16#80, 16#80, 16#08>>, DecoderSchema
+        )
+    ).
+
+decode_int64_max_test() ->
+    Schema = #{
+        a => {1, int64}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => 9223372036854775807},
+        aprotobuf_decoder:parse(
+            <<16#08, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#7F>>,
+            DecoderSchema
+        )
+    ).
+
+decode_int64_minus_one_test() ->
+    Schema = #{
+        a => {1, int64}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => -1},
+        aprotobuf_decoder:parse(
+            <<16#08, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#01>>,
+            DecoderSchema
+        )
+    ).
+
+decode_int64_minus_42_test() ->
+    Schema = #{
+        a => {1, int64}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => -42},
+        aprotobuf_decoder:parse(
+            <<16#08, 16#D6, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#01>>,
+            DecoderSchema
+        )
+    ).
+
+decode_int64_min_test() ->
+    Schema = #{
+        a => {1, int64}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => -9223372036854775808},
+        aprotobuf_decoder:parse(
+            <<16#08, 16#80, 16#80, 16#80, 16#80, 16#80, 16#80, 16#80, 16#80, 16#80, 16#01>>,
+            DecoderSchema
+        )
+    ).
+
+decode_int64_complex_test() ->
+    Schema = #{
+        a => {1, int64}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => -16#ABCD1234560CAFE},
+        aprotobuf_decoder:parse(
+            <<16#08, 16#82, 16#EA, 16#FC, 16#D4, 16#CB, 16#DB, 16#CB, 16#A1, 16#F5, 16#01>>,
+            DecoderSchema
+        )
+    ).
