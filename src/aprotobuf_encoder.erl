@@ -75,6 +75,10 @@ encode_field(_FieldNum, _V, sint64) ->
     error(badarg);
 encode_field(FieldNum, V, sfixed32) ->
     [encode_varint((FieldNum bsl 3) bor ?FIXED32_TAG), encode_sfixed32(V)];
+encode_field(FieldNum, V, fixed32) when is_integer(V), V >= 0, V < (1 bsl 32) ->
+    [encode_varint((FieldNum bsl 3) bor ?FIXED32_TAG), encode_fixed32(V)];
+encode_field(_FieldNum, _V, fixed32) ->
+    error(badarg);
 encode_field(FieldNum, V, MapSchema) when is_map(MapSchema) ->
     Encoded = encode(V, MapSchema),
     Len = erlang:iolist_size(Encoded),
@@ -84,6 +88,9 @@ encode_field(_FiledNum, _V, _Type) ->
 
 encode_sfixed32(Int) ->
     <<Int:32/little-signed-integer>>.
+
+encode_fixed32(Int) ->
+    <<Int:32/little-unsigned-integer>>.
 
 encode_varint(Int) when is_integer(Int), Int >= 0, Int < 128 ->
     [Int];
