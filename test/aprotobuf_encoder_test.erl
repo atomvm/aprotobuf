@@ -171,3 +171,90 @@ encode_int64_complex_test() ->
         <<16#08, 16#82, 16#EA, 16#FC, 16#D4, 16#CB, 16#DB, 16#CB, 16#A1, 16#F5, 16#01>>,
         iolist_to_binary(aprotobuf_encoder:encode(#{a => -16#ABCD1234560CAFE}, Schema))
     ).
+
+encode_uint32_small_test() ->
+    Schema = #{
+        a => {1, uint32}
+    },
+    ?assertEqual(
+        <<16#08, 16#2A>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => 42}, Schema))
+    ).
+
+encode_uint32_two_to_31_test() ->
+    Schema = #{
+        a => {1, uint32}
+    },
+    ?assertEqual(
+        <<16#08, 16#80, 16#80, 16#80, 16#80, 16#08>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => 2147483648}, Schema))
+    ).
+
+encode_uint32_max_test() ->
+    Schema = #{
+        a => {1, uint32}
+    },
+    ?assertEqual(
+        <<16#08, 16#FF, 16#FF, 16#FF, 16#FF, 16#0F>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => 4294967295}, Schema))
+    ).
+
+encode_uint32_overflow_test() ->
+    Schema = #{
+        a => {1, uint32}
+    },
+    ?assertError(badarg, aprotobuf_encoder:encode(#{a => 4294967296}, Schema)).
+
+encode_uint32_underflow_test() ->
+    Schema = #{
+        a => {1, uint32}
+    },
+    ?assertError(badarg, aprotobuf_encoder:encode(#{a => -1}, Schema)).
+
+encode_uint64_small_test() ->
+    Schema = #{
+        a => {1, uint64}
+    },
+    ?assertEqual(
+        <<16#08, 16#2A>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => 42}, Schema))
+    ).
+
+encode_uint64_two_to_32_test() ->
+    Schema = #{
+        a => {1, uint64}
+    },
+    ?assertEqual(
+        <<16#08, 16#80, 16#80, 16#80, 16#80, 16#10>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => 4294967296}, Schema))
+    ).
+
+encode_uint64_max_test() ->
+    Schema = #{
+        a => {1, uint64}
+    },
+    ?assertEqual(
+        <<16#08, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#01>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => 18446744073709551615}, Schema))
+    ).
+
+encode_uint64_overflow_test() ->
+    Schema = #{
+        a => {1, uint64}
+    },
+    ?assertError(badarg, aprotobuf_encoder:encode(#{a => 18446744073709551616}, Schema)).
+
+encode_uint64_underflow_test() ->
+    Schema = #{
+        a => {1, uint64}
+    },
+    ?assertError(badarg, aprotobuf_encoder:encode(#{a => -1}, Schema)).
+
+encode_uint64_complex_test() ->
+    Schema = #{
+        a => {1, uint64}
+    },
+    ?assertEqual(
+        <<16#08, 16#FE, 16#95, 16#83, 16#AB, 16#B4, 16#A4, 16#B4, 16#DE, 16#0A>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => 16#ABCD1234560CAFE}, Schema))
+    ).
