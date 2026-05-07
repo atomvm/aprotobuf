@@ -130,6 +130,10 @@ cast(<<Value:32/integer-little-unsigned>>, fixed32) ->
     Value;
 cast(<<Value:32/integer-little-signed>>, sfixed32) ->
     Value;
+cast(<<Value:64/integer-little-unsigned>>, fixed64) ->
+    Value;
+cast(<<Value:64/integer-little-signed>>, sfixed64) ->
+    Value;
 cast(<<Value:32/float-little>>, float) ->
     Value;
 cast(Value, undefined) ->

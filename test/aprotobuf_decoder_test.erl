@@ -652,3 +652,123 @@ decode_sfixed32_min_test() ->
         #{a => -2147483648},
         aprotobuf_decoder:parse(<<16#0D, 16#00, 16#00, 16#00, 16#80>>, DecoderSchema)
     ).
+
+decode_fixed64_zero_test() ->
+    Schema = #{
+        a => {1, fixed64}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => 0},
+        aprotobuf_decoder:parse(
+            <<16#09, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00>>, DecoderSchema
+        )
+    ).
+
+decode_fixed64_small_test() ->
+    Schema = #{
+        a => {1, fixed64}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => 42},
+        aprotobuf_decoder:parse(
+            <<16#09, 16#2A, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00>>, DecoderSchema
+        )
+    ).
+
+decode_fixed64_max_test() ->
+    Schema = #{
+        a => {1, fixed64}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => 18446744073709551615},
+        aprotobuf_decoder:parse(
+            <<16#09, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF>>, DecoderSchema
+        )
+    ).
+
+decode_fixed64_complex_test() ->
+    Schema = #{
+        a => {1, fixed64}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => 16#DEADBEEFCAFE1234},
+        aprotobuf_decoder:parse(
+            <<16#09, 16#34, 16#12, 16#FE, 16#CA, 16#EF, 16#BE, 16#AD, 16#DE>>, DecoderSchema
+        )
+    ).
+
+decode_sfixed64_zero_test() ->
+    Schema = #{
+        a => {1, sfixed64}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => 0},
+        aprotobuf_decoder:parse(
+            <<16#09, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00>>, DecoderSchema
+        )
+    ).
+
+decode_sfixed64_small_test() ->
+    Schema = #{
+        a => {1, sfixed64}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => 42},
+        aprotobuf_decoder:parse(
+            <<16#09, 16#2A, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00>>, DecoderSchema
+        )
+    ).
+
+decode_sfixed64_minus_one_test() ->
+    Schema = #{
+        a => {1, sfixed64}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => -1},
+        aprotobuf_decoder:parse(
+            <<16#09, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF>>, DecoderSchema
+        )
+    ).
+
+decode_sfixed64_minus_42_test() ->
+    Schema = #{
+        a => {1, sfixed64}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => -42},
+        aprotobuf_decoder:parse(
+            <<16#09, 16#D6, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF>>, DecoderSchema
+        )
+    ).
+
+decode_sfixed64_max_test() ->
+    Schema = #{
+        a => {1, sfixed64}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => 9223372036854775807},
+        aprotobuf_decoder:parse(
+            <<16#09, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#7F>>, DecoderSchema
+        )
+    ).
+
+decode_sfixed64_min_test() ->
+    Schema = #{
+        a => {1, sfixed64}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => -9223372036854775808},
+        aprotobuf_decoder:parse(
+            <<16#09, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#80>>, DecoderSchema
+        )
+    ).

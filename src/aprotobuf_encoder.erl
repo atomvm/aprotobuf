@@ -23,6 +23,7 @@
 
 -define(LEN_TAG, 2).
 -define(FIXED32_TAG, 5).
+-define(FIXED64_TAG, 1).
 
 encode(Map, Schema) ->
     Iterator = maps:iterator(Map),
@@ -79,6 +80,14 @@ encode_field(FieldNum, V, fixed32) when is_integer(V), V >= 0, V < (1 bsl 32) ->
     [encode_varint((FieldNum bsl 3) bor ?FIXED32_TAG), encode_fixed32(V)];
 encode_field(_FieldNum, _V, fixed32) ->
     error(badarg);
+encode_field(FieldNum, V, fixed64) when is_integer(V), V >= 0, V < (1 bsl 64) ->
+    [encode_varint((FieldNum bsl 3) bor ?FIXED64_TAG), encode_fixed64(V)];
+encode_field(_FieldNum, _V, fixed64) ->
+    error(badarg);
+encode_field(FieldNum, V, sfixed64) when is_integer(V), V >= -(1 bsl 63), V < (1 bsl 63) ->
+    [encode_varint((FieldNum bsl 3) bor ?FIXED64_TAG), encode_sfixed64(V)];
+encode_field(_FieldNum, _V, sfixed64) ->
+    error(badarg);
 encode_field(FieldNum, V, MapSchema) when is_map(MapSchema) ->
     Encoded = encode(V, MapSchema),
     Len = erlang:iolist_size(Encoded),
@@ -91,6 +100,12 @@ encode_sfixed32(Int) ->
 
 encode_fixed32(Int) ->
     <<Int:32/little-unsigned-integer>>.
+
+encode_fixed64(Int) ->
+    <<Int:64/little-unsigned-integer>>.
+
+encode_sfixed64(Int) ->
+    <<Int:64/little-signed-integer>>.
 
 encode_varint(Int) when is_integer(Int), Int >= 0, Int < 128 ->
     [Int];

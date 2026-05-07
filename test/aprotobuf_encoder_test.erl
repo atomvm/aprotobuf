@@ -618,3 +618,105 @@ encode_sfixed32_min_test() ->
         <<16#0D, 16#00, 16#00, 16#00, 16#80>>,
         iolist_to_binary(aprotobuf_encoder:encode(#{a => -2147483648}, Schema))
     ).
+
+encode_fixed64_zero_test() ->
+    Schema = #{
+        a => {1, fixed64}
+    },
+    ?assertEqual(
+        <<16#09, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => 0}, Schema))
+    ).
+
+encode_fixed64_small_test() ->
+    Schema = #{
+        a => {1, fixed64}
+    },
+    ?assertEqual(
+        <<16#09, 16#2A, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => 42}, Schema))
+    ).
+
+encode_fixed64_max_test() ->
+    Schema = #{
+        a => {1, fixed64}
+    },
+    ?assertEqual(
+        <<16#09, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => 18446744073709551615}, Schema))
+    ).
+
+encode_fixed64_complex_test() ->
+    Schema = #{
+        a => {1, fixed64}
+    },
+    ?assertEqual(
+        <<16#09, 16#34, 16#12, 16#FE, 16#CA, 16#EF, 16#BE, 16#AD, 16#DE>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => 16#DEADBEEFCAFE1234}, Schema))
+    ).
+
+encode_fixed64_overflow_test() ->
+    Schema = #{
+        a => {1, fixed64}
+    },
+    ?assertError(badarg, aprotobuf_encoder:encode(#{a => 18446744073709551616}, Schema)).
+
+encode_fixed64_underflow_test() ->
+    Schema = #{
+        a => {1, fixed64}
+    },
+    ?assertError(badarg, aprotobuf_encoder:encode(#{a => -1}, Schema)).
+
+encode_sfixed64_zero_test() ->
+    Schema = #{
+        a => {1, sfixed64}
+    },
+    ?assertEqual(
+        <<16#09, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => 0}, Schema))
+    ).
+
+encode_sfixed64_small_test() ->
+    Schema = #{
+        a => {1, sfixed64}
+    },
+    ?assertEqual(
+        <<16#09, 16#2A, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => 42}, Schema))
+    ).
+
+encode_sfixed64_minus_one_test() ->
+    Schema = #{
+        a => {1, sfixed64}
+    },
+    ?assertEqual(
+        <<16#09, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => -1}, Schema))
+    ).
+
+encode_sfixed64_minus_42_test() ->
+    Schema = #{
+        a => {1, sfixed64}
+    },
+    ?assertEqual(
+        <<16#09, 16#D6, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => -42}, Schema))
+    ).
+
+encode_sfixed64_max_test() ->
+    Schema = #{
+        a => {1, sfixed64}
+    },
+    ?assertEqual(
+        <<16#09, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#7F>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => 9223372036854775807}, Schema))
+    ).
+
+encode_sfixed64_min_test() ->
+    Schema = #{
+        a => {1, sfixed64}
+    },
+    ?assertEqual(
+        <<16#09, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#80>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => -9223372036854775808}, Schema))
+    ).
