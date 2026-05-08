@@ -720,3 +720,150 @@ encode_sfixed64_min_test() ->
         <<16#09, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#80>>,
         iolist_to_binary(aprotobuf_encoder:encode(#{a => -9223372036854775808}, Schema))
     ).
+
+encode_float_zero_test() ->
+    Schema = #{
+        a => {1, float}
+    },
+    ?assertEqual(
+        <<16#0D, 16#00, 16#00, 16#00, 16#00>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => 0.0}, Schema))
+    ).
+
+encode_float_positive_test() ->
+    Schema = #{
+        a => {1, float}
+    },
+    ?assertEqual(
+        <<16#0D, 16#00, 16#00, 16#C0, 16#3F>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => 1.5}, Schema))
+    ).
+
+encode_float_negative_test() ->
+    Schema = #{
+        a => {1, float}
+    },
+    ?assertEqual(
+        <<16#0D, 16#00, 16#00, 16#C0, 16#BF>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => -1.5}, Schema))
+    ).
+
+encode_float_positive_infinity_test() ->
+    Schema = #{
+        a => {1, float}
+    },
+    ?assertEqual(
+        <<16#0D, 16#00, 16#00, 16#80, 16#7F>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => infinity}, Schema))
+    ).
+
+encode_float_negative_infinity_test() ->
+    Schema = #{
+        a => {1, float}
+    },
+    ?assertEqual(
+        <<16#0D, 16#00, 16#00, 16#80, 16#FF>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => '-infinity'}, Schema))
+    ).
+
+encode_float_nan_test() ->
+    Schema = #{
+        a => {1, float}
+    },
+    ?assertEqual(
+        <<16#0D, 16#00, 16#00, 16#C0, 16#7F>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => nan}, Schema))
+    ).
+
+%% Integer values are auto-converted to float; 42 must produce the same wire
+%% bytes as 42.0.
+encode_float_integer_test() ->
+    Schema = #{
+        a => {1, float}
+    },
+    ?assertEqual(
+        <<16#0D, 16#00, 16#00, 16#28, 16#42>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => 42}, Schema))
+    ).
+
+encode_float_overflow_test() ->
+    Schema = #{
+        a => {1, float}
+    },
+    ?assertError(badarg, aprotobuf_encoder:encode(#{a => 1.0e40}, Schema)).
+
+encode_float_underflow_test() ->
+    Schema = #{
+        a => {1, float}
+    },
+    ?assertError(badarg, aprotobuf_encoder:encode(#{a => -1.0e40}, Schema)).
+
+encode_float_huge_integer_test() ->
+    Schema = #{
+        a => {1, float}
+    },
+    ?assertError(badarg, aprotobuf_encoder:encode(#{a => 1 bsl 200}, Schema)).
+
+encode_double_zero_test() ->
+    Schema = #{
+        a => {1, double}
+    },
+    ?assertEqual(
+        <<16#09, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => 0.0}, Schema))
+    ).
+
+encode_double_positive_test() ->
+    Schema = #{
+        a => {1, double}
+    },
+    ?assertEqual(
+        <<16#09, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#F8, 16#3F>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => 1.5}, Schema))
+    ).
+
+encode_double_negative_test() ->
+    Schema = #{
+        a => {1, double}
+    },
+    ?assertEqual(
+        <<16#09, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#F8, 16#BF>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => -1.5}, Schema))
+    ).
+
+encode_double_positive_infinity_test() ->
+    Schema = #{
+        a => {1, double}
+    },
+    ?assertEqual(
+        <<16#09, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#F0, 16#7F>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => infinity}, Schema))
+    ).
+
+encode_double_negative_infinity_test() ->
+    Schema = #{
+        a => {1, double}
+    },
+    ?assertEqual(
+        <<16#09, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#F0, 16#FF>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => '-infinity'}, Schema))
+    ).
+
+encode_double_nan_test() ->
+    Schema = #{
+        a => {1, double}
+    },
+    ?assertEqual(
+        <<16#09, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#F8, 16#7F>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => nan}, Schema))
+    ).
+
+%% Integer 42 must auto-convert to 42.0 and produce identical wire bytes.
+encode_double_integer_test() ->
+    Schema = #{
+        a => {1, double}
+    },
+    ?assertEqual(
+        <<16#09, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#45, 16#40>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => 42}, Schema))
+    ).

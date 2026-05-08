@@ -134,7 +134,23 @@ cast(<<Value:64/integer-little-unsigned>>, fixed64) ->
     Value;
 cast(<<Value:64/integer-little-signed>>, sfixed64) ->
     Value;
+cast(<<X:32/integer-little-unsigned>>, float) when X =:= 16#7F800000 ->
+    infinity;
+cast(<<X:32/integer-little-unsigned>>, float) when X =:= 16#FF800000 ->
+    '-infinity';
+cast(<<X:32/integer-little-unsigned>>, float) when (X band 16#7F800000) =:= 16#7F800000 ->
+    nan;
 cast(<<Value:32/float-little>>, float) ->
+    Value;
+cast(<<X:64/integer-little-unsigned>>, double) when X =:= 16#7FF0000000000000 ->
+    infinity;
+cast(<<X:64/integer-little-unsigned>>, double) when X =:= 16#FFF0000000000000 ->
+    '-infinity';
+cast(<<X:64/integer-little-unsigned>>, double) when
+    (X band 16#7FF0000000000000) =:= 16#7FF0000000000000
+->
+    nan;
+cast(<<Value:64/float-little>>, double) ->
     Value;
 cast(Value, undefined) ->
     Value;

@@ -88,6 +88,26 @@ encode_field(FieldNum, V, sfixed64) when is_integer(V), V >= -(1 bsl 63), V < (1
     [encode_varint((FieldNum bsl 3) bor ?FIXED64_TAG), encode_sfixed64(V)];
 encode_field(_FieldNum, _V, sfixed64) ->
     error(badarg);
+encode_field(FieldNum, V, float) when is_number(V), abs(V) =< 3.4028234663852886e+38 ->
+    [encode_varint((FieldNum bsl 3) bor ?FIXED32_TAG), <<V:32/float-little>>];
+encode_field(FieldNum, infinity, float) ->
+    [encode_varint((FieldNum bsl 3) bor ?FIXED32_TAG), <<0, 0, 16#80, 16#7F>>];
+encode_field(FieldNum, '-infinity', float) ->
+    [encode_varint((FieldNum bsl 3) bor ?FIXED32_TAG), <<0, 0, 16#80, 16#FF>>];
+encode_field(FieldNum, nan, float) ->
+    [encode_varint((FieldNum bsl 3) bor ?FIXED32_TAG), <<0, 0, 16#C0, 16#7F>>];
+encode_field(_FieldNum, _V, float) ->
+    error(badarg);
+encode_field(FieldNum, V, double) when is_number(V) ->
+    [encode_varint((FieldNum bsl 3) bor ?FIXED64_TAG), <<V:64/float-little>>];
+encode_field(FieldNum, infinity, double) ->
+    [encode_varint((FieldNum bsl 3) bor ?FIXED64_TAG), <<0, 0, 0, 0, 0, 0, 16#F0, 16#7F>>];
+encode_field(FieldNum, '-infinity', double) ->
+    [encode_varint((FieldNum bsl 3) bor ?FIXED64_TAG), <<0, 0, 0, 0, 0, 0, 16#F0, 16#FF>>];
+encode_field(FieldNum, nan, double) ->
+    [encode_varint((FieldNum bsl 3) bor ?FIXED64_TAG), <<0, 0, 0, 0, 0, 0, 16#F8, 16#7F>>];
+encode_field(_FieldNum, _V, double) ->
+    error(badarg);
 encode_field(FieldNum, V, MapSchema) when is_map(MapSchema) ->
     Encoded = encode(V, MapSchema),
     Len = erlang:iolist_size(Encoded),

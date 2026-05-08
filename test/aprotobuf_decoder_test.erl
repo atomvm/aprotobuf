@@ -772,3 +772,135 @@ decode_sfixed64_min_test() ->
             <<16#09, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#80>>, DecoderSchema
         )
     ).
+
+decode_float_zero_test() ->
+    Schema = #{
+        a => {1, float}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => 0.0},
+        aprotobuf_decoder:parse(<<16#0D, 16#00, 16#00, 16#00, 16#00>>, DecoderSchema)
+    ).
+
+decode_float_positive_test() ->
+    Schema = #{
+        a => {1, float}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => 1.5},
+        aprotobuf_decoder:parse(<<16#0D, 16#00, 16#00, 16#C0, 16#3F>>, DecoderSchema)
+    ).
+
+decode_float_negative_test() ->
+    Schema = #{
+        a => {1, float}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => -1.5},
+        aprotobuf_decoder:parse(<<16#0D, 16#00, 16#00, 16#C0, 16#BF>>, DecoderSchema)
+    ).
+
+decode_float_positive_infinity_test() ->
+    Schema = #{
+        a => {1, float}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => infinity},
+        aprotobuf_decoder:parse(<<16#0D, 16#00, 16#00, 16#80, 16#7F>>, DecoderSchema)
+    ).
+
+decode_float_negative_infinity_test() ->
+    Schema = #{
+        a => {1, float}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => '-infinity'},
+        aprotobuf_decoder:parse(<<16#0D, 16#00, 16#00, 16#80, 16#FF>>, DecoderSchema)
+    ).
+
+decode_float_nan_test() ->
+    Schema = #{
+        a => {1, float}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => nan},
+        aprotobuf_decoder:parse(<<16#0D, 16#00, 16#00, 16#C0, 16#7F>>, DecoderSchema)
+    ).
+
+decode_double_zero_test() ->
+    Schema = #{
+        a => {1, double}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => 0.0},
+        aprotobuf_decoder:parse(
+            <<16#09, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00>>, DecoderSchema
+        )
+    ).
+
+decode_double_positive_test() ->
+    Schema = #{
+        a => {1, double}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => 1.5},
+        aprotobuf_decoder:parse(
+            <<16#09, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#F8, 16#3F>>, DecoderSchema
+        )
+    ).
+
+decode_double_negative_test() ->
+    Schema = #{
+        a => {1, double}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => -1.5},
+        aprotobuf_decoder:parse(
+            <<16#09, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#F8, 16#BF>>, DecoderSchema
+        )
+    ).
+
+decode_double_positive_infinity_test() ->
+    Schema = #{
+        a => {1, double}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => infinity},
+        aprotobuf_decoder:parse(
+            <<16#09, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#F0, 16#7F>>, DecoderSchema
+        )
+    ).
+
+decode_double_negative_infinity_test() ->
+    Schema = #{
+        a => {1, double}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => '-infinity'},
+        aprotobuf_decoder:parse(
+            <<16#09, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#F0, 16#FF>>, DecoderSchema
+        )
+    ).
+
+decode_double_nan_test() ->
+    Schema = #{
+        a => {1, double}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => nan},
+        aprotobuf_decoder:parse(
+            <<16#09, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#F8, 16#7F>>, DecoderSchema
+        )
+    ).
