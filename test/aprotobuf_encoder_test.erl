@@ -1049,3 +1049,22 @@ encode_repeated_double_non_finite_test() ->
             aprotobuf_encoder:encode(#{r => [infinity, '-infinity', nan]}, Schema)
         )
     ).
+
+encode_repeated_string_test() ->
+    Schema = #{r => {1, {repeated, string}}},
+    Expected =
+        <<16#0A, 16#05, "Hello", 16#0A, 16#05, "World", 16#0A, 16#04, "this", 16#0A, 16#02, "is",
+            16#0A, 16#01, "a", 16#0A, 16#04, "test", 16#0A, 16#01, ".">>,
+    ?assertEqual(
+        Expected,
+        iolist_to_binary(
+            aprotobuf_encoder:encode(
+                #{
+                    r => [
+                        <<"Hello">>, <<"World">>, <<"this">>, <<"is">>, <<"a">>, <<"test">>, <<".">>
+                    ]
+                },
+                Schema
+            )
+        )
+    ).

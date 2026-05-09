@@ -101,9 +101,14 @@ encode_field(_FieldNum, _V, bool) ->
 encode_field(_FieldNum, [], {repeated, _ElemType}) ->
     [];
 encode_field(FieldNum, V, {repeated, ElemType}) when is_list(V) ->
-    Body = iolist_to_binary([encode_packed_elem(E, ElemType) || E <- V]),
-    Len = byte_size(Body),
-    [encode_varint((FieldNum bsl 3) bor ?LEN_TAG), encode_varint(Len), Body];
+    case is_packable(ElemType) of
+        true ->
+            Body = iolist_to_binary([encode_packed_elem(E, ElemType) || E <- V]),
+            Len = byte_size(Body),
+            [encode_varint((FieldNum bsl 3) bor ?LEN_TAG), encode_varint(Len), Body];
+        false ->
+            [encode_field(FieldNum, E, ElemType) || E <- V]
+    end;
 encode_field(FieldNum, V, MapSchema) when is_map(MapSchema) ->
     Encoded = encode(V, MapSchema),
     Len = erlang:iolist_size(Encoded),
@@ -138,6 +143,21 @@ encode_double(nan) ->
     <<0, 0, 0, 0, 0, 0, 16#F8, 16#7F>>;
 encode_double(_) ->
     error(badarg).
+
+is_packable(int32) -> true;
+is_packable(int64) -> true;
+is_packable(uint32) -> true;
+is_packable(uint64) -> true;
+is_packable(sint32) -> true;
+is_packable(sint64) -> true;
+is_packable(bool) -> true;
+is_packable(fixed32) -> true;
+is_packable(sfixed32) -> true;
+is_packable(fixed64) -> true;
+is_packable(sfixed64) -> true;
+is_packable(float) -> true;
+is_packable(double) -> true;
+is_packable(_) -> false.
 
 encode_packed_elem(V, int32) when is_integer(V), V >= 0, V < (1 bsl 31) ->
     encode_varint(V);

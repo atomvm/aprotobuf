@@ -81,16 +81,48 @@ parse(Bin, Schema, What, Acc) ->
             [Value, Tag | Built] = Acc,
             FieldNum = Tag bsr 3,
             {Key, Type} = maps:get(FieldNum, Schema, {x, undefined}),
-            NewAcc = maps:put(Key, cast(Value, Type), Built),
+            NewAcc = put_value(Built, Key, Type, Value),
             parse(Bin, Schema, tag, NewAcc);
         len_field_value ->
             [Len, Tag | Built] = Acc,
             <<SubBin:Len/binary, Rest/binary>> = Bin,
             FieldNum = Tag bsr 3,
             {Key, Type} = maps:get(FieldNum, Schema, {x, undefined}),
-            NewAcc = maps:put(Key, cast(SubBin, Type), Built),
+            NewAcc = put_len_value(Built, Key, Type, SubBin),
             parse(Rest, Schema, tag, NewAcc)
     end.
+
+put_value(Built, Key, {repeated, ElemType}, Value) ->
+    Existing = maps:get(Key, Built, []),
+    maps:put(Key, Existing ++ [cast(Value, ElemType)], Built);
+put_value(Built, Key, Type, Value) ->
+    maps:put(Key, cast(Value, Type), Built).
+
+put_len_value(Built, Key, {repeated, ElemType}, Bin) ->
+    Existing = maps:get(Key, Built, []),
+    NewElems =
+        case is_packable(ElemType) of
+            true -> parse_packed(Bin, ElemType, []);
+            false -> [cast(Bin, ElemType)]
+        end,
+    maps:put(Key, Existing ++ NewElems, Built);
+put_len_value(Built, Key, Type, Bin) ->
+    maps:put(Key, cast(Bin, Type), Built).
+
+is_packable(int32) -> true;
+is_packable(int64) -> true;
+is_packable(uint32) -> true;
+is_packable(uint64) -> true;
+is_packable(sint32) -> true;
+is_packable(sint64) -> true;
+is_packable(bool) -> true;
+is_packable(fixed32) -> true;
+is_packable(sfixed32) -> true;
+is_packable(fixed64) -> true;
+is_packable(sfixed64) -> true;
+is_packable(float) -> true;
+is_packable(double) -> true;
+is_packable(_) -> false.
 
 parse_varint(<<0:1, IntValue:7, Rest/binary>>, IntAcc, Bytes, Next, Schema, Acc) when Bytes =< 9 ->
     VarInt = (IntValue bsl 7 * Bytes) bor IntAcc,
