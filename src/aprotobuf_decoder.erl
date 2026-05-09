@@ -43,6 +43,11 @@ decode_schema({K, {FieldNum, {repeated, ElemType}}, I}, Acc) when
     is_atom(ElemType) and is_integer(FieldNum) and (FieldNum >= 0)
 ->
     decode_schema(maps:next(I), Acc#{FieldNum => {K, {repeated, ElemType}}});
+decode_schema({K, {FieldNum, {map, KeyType, ValueType}}, I}, Acc) when
+    is_atom(KeyType) and is_atom(ValueType) and is_integer(FieldNum) and (FieldNum >= 0)
+->
+    EntrySubSchema = transform_schema(#{key => {1, KeyType}, value => {2, ValueType}}),
+    decode_schema(maps:next(I), Acc#{FieldNum => {K, {map, EntrySubSchema}}});
 decode_schema({K, T, _I}, _Acc) ->
     error({badarg, K, T}).
 
@@ -106,6 +111,12 @@ put_len_value(Built, Key, {repeated, ElemType}, Bin) ->
             false -> [cast(Bin, ElemType)]
         end,
     maps:put(Key, Existing ++ NewElems, Built);
+put_len_value(Built, Key, {map, EntrySubSchema}, Bin) ->
+    EntryMap = cast(Bin, EntrySubSchema),
+    K0 = maps:get(key, EntryMap),
+    V0 = maps:get(value, EntryMap),
+    Existing = maps:get(Key, Built, #{}),
+    maps:put(Key, Existing#{K0 => V0}, Built);
 put_len_value(Built, Key, Type, Bin) ->
     maps:put(Key, cast(Bin, Type), Built).
 

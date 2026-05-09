@@ -109,6 +109,12 @@ encode_field(FieldNum, V, {repeated, ElemType}) when is_list(V) ->
         false ->
             [encode_field(FieldNum, E, ElemType) || E <- V]
     end;
+encode_field(FieldNum, V, {map, KeyType, ValueType}) when is_map(V) ->
+    EntrySubSchema = #{key => {1, KeyType}, value => {2, ValueType}},
+    [
+        encode_field(FieldNum, #{key => K0, value => V0}, EntrySubSchema)
+     || {K0, V0} <- maps:to_list(V)
+    ];
 encode_field(FieldNum, V, MapSchema) when is_map(MapSchema) ->
     Encoded = encode(V, MapSchema),
     Len = erlang:iolist_size(Encoded),

@@ -1193,3 +1193,23 @@ decode_repeated_string_test() ->
         #{r => [<<"Hello">>, <<"World">>, <<"this">>, <<"is">>, <<"a">>, <<"test">>, <<".">>]},
         aprotobuf_decoder:parse(Wire, DecoderSchema)
     ).
+
+decode_map_string_int32_test() ->
+    Schema = #{count => {1, {map, string, int32}}},
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    Wire =
+        <<16#0A, 16#09, 16#0A, 16#05, "Hello", 16#10, 16#05, 16#0A, 16#08, 16#0A, 16#04, "test",
+            16#10, 16#04, 16#0A, 16#09, 16#0A, 16#05, "hello", 16#10, 16#05, 16#0A, 16#08, 16#0A,
+            16#04, "ciao", 16#10, 16#04, 16#0A, 16#04, 16#0A, 16#00, 16#10, 16#00>>,
+    ?assertEqual(
+        #{
+            count => #{
+                <<"Hello">> => 5,
+                <<"test">> => 4,
+                <<"hello">> => 5,
+                <<"ciao">> => 4,
+                <<>> => 0
+            }
+        },
+        aprotobuf_decoder:parse(Wire, DecoderSchema)
+    ).

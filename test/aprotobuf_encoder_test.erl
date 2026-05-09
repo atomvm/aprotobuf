@@ -1068,3 +1068,18 @@ encode_repeated_string_test() ->
             )
         )
     ).
+
+encode_map_string_int32_roundtrip_test() ->
+    Schema = #{count => {1, {map, string, int32}}},
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    Input = #{
+        count => #{
+            <<"Hello">> => 5,
+            <<"test">> => 4,
+            <<"hello">> => 5,
+            <<"ciao">> => 4,
+            <<>> => 0
+        }
+    },
+    Encoded = iolist_to_binary(aprotobuf_encoder:encode(Input, Schema)),
+    ?assertEqual(Input, aprotobuf_decoder:parse(Encoded, DecoderSchema)).
