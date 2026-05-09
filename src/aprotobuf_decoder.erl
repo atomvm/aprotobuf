@@ -39,6 +39,10 @@ decode_schema({K, {FieldNum, {enum, LabelsToInts}}, I}, Acc) when
     is_map(LabelsToInts) and is_integer(FieldNum) and (FieldNum >= 0)
 ->
     decode_schema(maps:next(I), Acc#{FieldNum => {K, {enum, transform_enum_map(LabelsToInts)}}});
+decode_schema({K, {FieldNum, {repeated, ElemType}}, I}, Acc) when
+    is_atom(ElemType) and is_integer(FieldNum) and (FieldNum >= 0)
+->
+    decode_schema(maps:next(I), Acc#{FieldNum => {K, {repeated, ElemType}}});
 decode_schema({K, T, _I}, _Acc) ->
     error({badarg, K, T}).
 
@@ -160,5 +164,34 @@ cast(Value, string) ->
     Value;
 cast(Value, bool) ->
     Value =/= 0;
+cast(Bin, {repeated, ElemType}) when is_binary(Bin) ->
+    parse_packed(Bin, ElemType, []);
 cast(Value, Proto) when is_map(Proto) ->
     parse(Value, Proto).
+
+parse_packed(<<>>, _ElemType, Acc) ->
+    lists:reverse(Acc);
+parse_packed(Bin, ElemType, Acc) when
+    ElemType =:= int32;
+    ElemType =:= int64;
+    ElemType =:= uint32;
+    ElemType =:= uint64;
+    ElemType =:= sint32;
+    ElemType =:= sint64;
+    ElemType =:= bool
+->
+    {V, Rest} = parse_packed_varint(Bin, 0, 0),
+    parse_packed(Rest, ElemType, [cast(V, ElemType) | Acc]);
+parse_packed(<<B:4/binary, Rest/binary>>, ElemType, Acc) when
+    ElemType =:= fixed32; ElemType =:= sfixed32; ElemType =:= float
+->
+    parse_packed(Rest, ElemType, [cast(B, ElemType) | Acc]);
+parse_packed(<<B:8/binary, Rest/binary>>, ElemType, Acc) when
+    ElemType =:= fixed64; ElemType =:= sfixed64; ElemType =:= double
+->
+    parse_packed(Rest, ElemType, [cast(B, ElemType) | Acc]).
+
+parse_packed_varint(<<0:1, V:7, Rest/binary>>, Acc, Bytes) when Bytes =< 9 ->
+    {(V bsl 7 * Bytes) bor Acc, Rest};
+parse_packed_varint(<<1:1, V:7, Rest/binary>>, Acc, Bytes) when Bytes =< 9 ->
+    parse_packed_varint(Rest, (V bsl 7 * Bytes) bor Acc, Bytes + 1).

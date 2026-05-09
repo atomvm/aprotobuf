@@ -926,3 +926,220 @@ decode_bool_nonzero_test() ->
     },
     DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
     ?assertEqual(#{a => true}, aprotobuf_decoder:parse(<<16#08, 16#2A>>, DecoderSchema)).
+
+decode_repeated_int64_packed_test() ->
+    Schema = #{
+        r => {1, {repeated, int64}}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    Wire =
+        <<16#0A, 16#40, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#01, 16#01,
+            16#2A, 16#B4, 16#A4, 16#F8, 16#D7, 16#0C, 16#F6, 16#B0, 16#FA, 16#D7, 16#DC, 16#F9,
+            16#AA, 16#9A, 16#12, 16#00, 16#FE, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF,
+            16#FF, 16#01, 16#35, 16#00, 16#00, 16#00, 16#01, 16#01, 16#01, 16#FF, 16#FF, 16#FF,
+            16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#01, 16#FE, 16#FF, 16#FF, 16#FF, 16#FF,
+            16#FF, 16#FF, 16#FF, 16#FF, 16#01>>,
+    ?assertEqual(
+        #{
+            r =>
+                [-1, 1, 42, 3405648436, 1311862291833985142, 0, -2, 53, 0, 0, 0, 1, 1, 1, -1, -2]
+        },
+        aprotobuf_decoder:parse(Wire, DecoderSchema)
+    ).
+
+decode_repeated_bool_packed_test() ->
+    Schema = #{
+        r => {1, {repeated, bool}}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{r => [true, false, true, false, true, false, true, true, false, false]},
+        aprotobuf_decoder:parse(
+            <<16#0A, 16#0A, 16#01, 16#00, 16#01, 16#00, 16#01, 16#00, 16#01, 16#01, 16#00, 16#00>>,
+            DecoderSchema
+        )
+    ).
+
+decode_repeated_fixed32_packed_test() ->
+    Schema = #{
+        r => {1, {repeated, fixed32}}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    Wire =
+        <<16#0A, 16#1C, 16#00, 16#00, 16#00, 16#00, 16#01, 16#00, 16#00, 16#00, 16#02, 16#00, 16#00,
+            16#00, 16#03, 16#00, 16#00, 16#00, 16#04, 16#00, 16#00, 16#00, 16#05, 16#00, 16#00,
+            16#00, 16#06, 16#00, 16#00, 16#00>>,
+    ?assertEqual(
+        #{r => [0, 1, 2, 3, 4, 5, 6]},
+        aprotobuf_decoder:parse(Wire, DecoderSchema)
+    ).
+
+decode_repeated_int32_packed_test() ->
+    Schema = #{
+        r => {1, {repeated, int32}}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{r => [1]},
+        aprotobuf_decoder:parse(<<16#0A, 16#01, 16#01>>, DecoderSchema)
+    ).
+
+decode_mixed_with_empty_repeated_test() ->
+    Schema = #{
+        a => {1, int32},
+        r => {2, {repeated, int32}},
+        b => {3, string}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{a => 1, b => <<"hello">>},
+        aprotobuf_decoder:parse(
+            <<16#08, 16#01, 16#1A, 16#05, "hello">>, DecoderSchema
+        )
+    ).
+
+decode_repeated_uint32_packed_test() ->
+    Schema = #{r => {1, {repeated, uint32}}},
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{r => [0, 2147483648, 4294967295]},
+        aprotobuf_decoder:parse(
+            <<16#0A, 16#0B, 16#00, 16#80, 16#80, 16#80, 16#80, 16#08, 16#FF, 16#FF, 16#FF, 16#FF,
+                16#0F>>,
+            DecoderSchema
+        )
+    ).
+
+decode_repeated_uint64_packed_test() ->
+    Schema = #{r => {1, {repeated, uint64}}},
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{r => [0, 9223372036854775808, 18446744073709551615]},
+        aprotobuf_decoder:parse(
+            <<16#0A, 16#15, 16#00, 16#80, 16#80, 16#80, 16#80, 16#80, 16#80, 16#80, 16#80, 16#80,
+                16#01, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#01>>,
+            DecoderSchema
+        )
+    ).
+
+decode_repeated_sint32_packed_test() ->
+    Schema = #{r => {1, {repeated, sint32}}},
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{r => [-1, 0, 1, -2147483648, 2147483647]},
+        aprotobuf_decoder:parse(
+            <<16#0A, 16#0D, 16#01, 16#00, 16#02, 16#FF, 16#FF, 16#FF, 16#FF, 16#0F, 16#FE, 16#FF,
+                16#FF, 16#FF, 16#0F>>,
+            DecoderSchema
+        )
+    ).
+
+decode_repeated_sfixed32_packed_test() ->
+    Schema = #{r => {1, {repeated, sfixed32}}},
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{r => [-1, 0, -2147483648, 2147483647]},
+        aprotobuf_decoder:parse(
+            <<16#0A, 16#10, 16#FF, 16#FF, 16#FF, 16#FF, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00,
+                16#00, 16#80, 16#FF, 16#FF, 16#FF, 16#7F>>,
+            DecoderSchema
+        )
+    ).
+
+decode_repeated_fixed64_packed_test() ->
+    Schema = #{r => {1, {repeated, fixed64}}},
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{r => [0, 1, 18446744073709551615]},
+        aprotobuf_decoder:parse(
+            <<16#0A, 16#18, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#01, 16#00,
+                16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF,
+                16#FF, 16#FF>>,
+            DecoderSchema
+        )
+    ).
+
+decode_repeated_sfixed64_packed_test() ->
+    Schema = #{r => {1, {repeated, sfixed64}}},
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{r => [-1, 0, -9223372036854775808, 9223372036854775807]},
+        aprotobuf_decoder:parse(
+            <<16#0A, 16#20, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#00, 16#00,
+                16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00,
+                16#00, 16#80, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#7F>>,
+            DecoderSchema
+        )
+    ).
+
+decode_repeated_double_with_string_test() ->
+    Schema = #{
+        r => {1, {repeated, double}},
+        b => {2, string}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    Wire =
+        <<16#0A, 16#30, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00,
+            16#00, 16#00, 16#00, 16#F0, 16#BF, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#F0,
+            16#3F, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#45, 16#C0, 16#00, 16#00, 16#00,
+            16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#14,
+            16#40, 16#12, 16#04, "test">>,
+    ?assertEqual(
+        #{r => [0.0, -1.0, 1.0, -42.0, 0.0, 5.0], b => <<"test">>},
+        aprotobuf_decoder:parse(Wire, DecoderSchema)
+    ).
+
+decode_repeated_float_with_string_test() ->
+    Schema = #{
+        r => {1, {repeated, float}},
+        b => {2, string}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    Wire =
+        <<16#0A, 16#18, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#80, 16#BF, 16#00, 16#00, 16#80,
+            16#3F, 16#00, 16#00, 16#28, 16#C2, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#A0,
+            16#40, 16#12, 16#04, "test">>,
+    ?assertEqual(
+        #{r => [0.0, -1.0, 1.0, -42.0, 0.0, 5.0], b => <<"test">>},
+        aprotobuf_decoder:parse(Wire, DecoderSchema)
+    ).
+
+decode_repeated_sint64_with_sint64_test() ->
+    Schema = #{
+        r => {1, {repeated, sint64}},
+        b => {2, sint64}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{r => [-1, -5, -7, 0, 0, 0, 1, 42, -1], b => -1},
+        aprotobuf_decoder:parse(
+            <<16#0A, 16#09, 16#01, 16#09, 16#0D, 16#00, 16#00, 16#00, 16#02, 16#54, 16#01, 16#10,
+                16#01>>,
+            DecoderSchema
+        )
+    ).
+
+decode_repeated_float_non_finite_test() ->
+    Schema = #{r => {1, {repeated, float}}},
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{r => [infinity, '-infinity', nan]},
+        aprotobuf_decoder:parse(
+            <<16#0A, 16#0C, 16#00, 16#00, 16#80, 16#7F, 16#00, 16#00, 16#80, 16#FF, 16#00, 16#00,
+                16#C0, 16#7F>>,
+            DecoderSchema
+        )
+    ).
+
+decode_repeated_double_non_finite_test() ->
+    Schema = #{r => {1, {repeated, double}}},
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(
+        #{r => [infinity, '-infinity', nan]},
+        aprotobuf_decoder:parse(
+            <<16#0A, 16#18, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#F0, 16#7F, 16#00, 16#00,
+                16#00, 16#00, 16#00, 16#00, 16#F0, 16#FF, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00,
+                16#F8, 16#7F>>,
+            DecoderSchema
+        )
+    ).
