@@ -867,3 +867,21 @@ encode_double_integer_test() ->
         <<16#09, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#45, 16#40>>,
         iolist_to_binary(aprotobuf_encoder:encode(#{a => 42}, Schema))
     ).
+
+encode_bool_false_test() ->
+    Schema = #{
+        a => {1, bool}
+    },
+    ?assertEqual(
+        <<16#08, 16#00>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => false}, Schema))
+    ).
+
+encode_bool_true_test() ->
+    Schema = #{
+        a => {1, bool}
+    },
+    ?assertEqual(
+        <<16#08, 16#01>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => true}, Schema))
+    ).

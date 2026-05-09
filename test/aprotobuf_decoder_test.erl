@@ -904,3 +904,25 @@ decode_double_nan_test() ->
             <<16#09, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#F8, 16#7F>>, DecoderSchema
         )
     ).
+
+decode_bool_false_test() ->
+    Schema = #{
+        a => {1, bool}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(#{a => false}, aprotobuf_decoder:parse(<<16#08, 16#00>>, DecoderSchema)).
+
+decode_bool_true_test() ->
+    Schema = #{
+        a => {1, bool}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(#{a => true}, aprotobuf_decoder:parse(<<16#08, 16#01>>, DecoderSchema)).
+
+%% Per the protobuf wire spec, any non-zero VARINT decodes to `true`.
+decode_bool_nonzero_test() ->
+    Schema = #{
+        a => {1, bool}
+    },
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    ?assertEqual(#{a => true}, aprotobuf_decoder:parse(<<16#08, 16#2A>>, DecoderSchema)).

@@ -108,6 +108,12 @@ encode_field(FieldNum, nan, double) ->
     [encode_varint((FieldNum bsl 3) bor ?FIXED64_TAG), <<0, 0, 0, 0, 0, 0, 16#F8, 16#7F>>];
 encode_field(_FieldNum, _V, double) ->
     error(badarg);
+encode_field(FieldNum, false, bool) ->
+    [encode_varint(FieldNum bsl 3), <<0>>];
+encode_field(FieldNum, true, bool) ->
+    [encode_varint(FieldNum bsl 3), <<1>>];
+encode_field(_FieldNum, _V, bool) ->
+    error(badarg);
 encode_field(FieldNum, V, MapSchema) when is_map(MapSchema) ->
     Encoded = encode(V, MapSchema),
     Len = erlang:iolist_size(Encoded),
