@@ -39,6 +39,15 @@ decode_schema({K, {FieldNum, {enum, LabelsToInts}}, I}, Acc) when
     is_map(LabelsToInts) and is_integer(FieldNum) and (FieldNum >= 0)
 ->
     decode_schema(maps:next(I), Acc#{FieldNum => {K, {enum, transform_enum_map(LabelsToInts)}}});
+decode_schema({K, {FieldNum, {repeated, ElemType}}, I}, Acc) when
+    is_atom(ElemType) and is_integer(FieldNum) and (FieldNum >= 0)
+->
+    decode_schema(maps:next(I), Acc#{FieldNum => {K, {repeated, ElemType}}});
+decode_schema({K, {FieldNum, {map, KeyType, ValueType}}, I}, Acc) when
+    is_atom(KeyType) and is_atom(ValueType) and is_integer(FieldNum) and (FieldNum >= 0)
+->
+    EntrySubSchema = transform_schema(#{key => {1, KeyType}, value => {2, ValueType}}),
+    decode_schema(maps:next(I), Acc#{FieldNum => {K, {map, EntrySubSchema}}});
 decode_schema({K, T, _I}, _Acc) ->
     error({badarg, K, T}).
 
@@ -77,16 +86,54 @@ parse(Bin, Schema, What, Acc) ->
             [Value, Tag | Built] = Acc,
             FieldNum = Tag bsr 3,
             {Key, Type} = maps:get(FieldNum, Schema, {x, undefined}),
-            NewAcc = maps:put(Key, cast(Value, Type), Built),
+            NewAcc = put_value(Built, Key, Type, Value),
             parse(Bin, Schema, tag, NewAcc);
         len_field_value ->
             [Len, Tag | Built] = Acc,
             <<SubBin:Len/binary, Rest/binary>> = Bin,
             FieldNum = Tag bsr 3,
             {Key, Type} = maps:get(FieldNum, Schema, {x, undefined}),
-            NewAcc = maps:put(Key, cast(SubBin, Type), Built),
+            NewAcc = put_len_value(Built, Key, Type, SubBin),
             parse(Rest, Schema, tag, NewAcc)
     end.
+
+put_value(Built, Key, {repeated, ElemType}, Value) ->
+    Existing = maps:get(Key, Built, []),
+    maps:put(Key, Existing ++ [cast(Value, ElemType)], Built);
+put_value(Built, Key, Type, Value) ->
+    maps:put(Key, cast(Value, Type), Built).
+
+put_len_value(Built, Key, {repeated, ElemType}, Bin) ->
+    Existing = maps:get(Key, Built, []),
+    NewElems =
+        case is_packable(ElemType) of
+            true -> parse_packed(Bin, ElemType, []);
+            false -> [cast(Bin, ElemType)]
+        end,
+    maps:put(Key, Existing ++ NewElems, Built);
+put_len_value(Built, Key, {map, EntrySubSchema}, Bin) ->
+    EntryMap = cast(Bin, EntrySubSchema),
+    K0 = maps:get(key, EntryMap),
+    V0 = maps:get(value, EntryMap),
+    Existing = maps:get(Key, Built, #{}),
+    maps:put(Key, Existing#{K0 => V0}, Built);
+put_len_value(Built, Key, Type, Bin) ->
+    maps:put(Key, cast(Bin, Type), Built).
+
+is_packable(int32) -> true;
+is_packable(int64) -> true;
+is_packable(uint32) -> true;
+is_packable(uint64) -> true;
+is_packable(sint32) -> true;
+is_packable(sint64) -> true;
+is_packable(bool) -> true;
+is_packable(fixed32) -> true;
+is_packable(sfixed32) -> true;
+is_packable(fixed64) -> true;
+is_packable(sfixed64) -> true;
+is_packable(float) -> true;
+is_packable(double) -> true;
+is_packable(_) -> false.
 
 parse_varint(<<0:1, IntValue:7, Rest/binary>>, IntAcc, Bytes, Next, Schema, Acc) when Bytes =< 9 ->
     VarInt = (IntValue bsl 7 * Bytes) bor IntAcc,
@@ -134,7 +181,23 @@ cast(<<Value:64/integer-little-unsigned>>, fixed64) ->
     Value;
 cast(<<Value:64/integer-little-signed>>, sfixed64) ->
     Value;
+cast(<<X:32/integer-little-unsigned>>, float) when X =:= 16#7F800000 ->
+    infinity;
+cast(<<X:32/integer-little-unsigned>>, float) when X =:= 16#FF800000 ->
+    '-infinity';
+cast(<<X:32/integer-little-unsigned>>, float) when (X band 16#7F800000) =:= 16#7F800000 ->
+    nan;
 cast(<<Value:32/float-little>>, float) ->
+    Value;
+cast(<<X:64/integer-little-unsigned>>, double) when X =:= 16#7FF0000000000000 ->
+    infinity;
+cast(<<X:64/integer-little-unsigned>>, double) when X =:= 16#FFF0000000000000 ->
+    '-infinity';
+cast(<<X:64/integer-little-unsigned>>, double) when
+    (X band 16#7FF0000000000000) =:= 16#7FF0000000000000
+->
+    nan;
+cast(<<Value:64/float-little>>, double) ->
     Value;
 cast(Value, undefined) ->
     Value;
@@ -143,9 +206,35 @@ cast(Value, bytes) ->
 cast(Value, string) ->
     Value;
 cast(Value, bool) ->
-    case Value of
-        0 -> false;
-        1 -> true
-    end;
+    Value =/= 0;
+cast(Bin, {repeated, ElemType}) when is_binary(Bin) ->
+    parse_packed(Bin, ElemType, []);
 cast(Value, Proto) when is_map(Proto) ->
     parse(Value, Proto).
+
+parse_packed(<<>>, _ElemType, Acc) ->
+    lists:reverse(Acc);
+parse_packed(Bin, ElemType, Acc) when
+    ElemType =:= int32;
+    ElemType =:= int64;
+    ElemType =:= uint32;
+    ElemType =:= uint64;
+    ElemType =:= sint32;
+    ElemType =:= sint64;
+    ElemType =:= bool
+->
+    {V, Rest} = parse_packed_varint(Bin, 0, 0),
+    parse_packed(Rest, ElemType, [cast(V, ElemType) | Acc]);
+parse_packed(<<B:4/binary, Rest/binary>>, ElemType, Acc) when
+    ElemType =:= fixed32; ElemType =:= sfixed32; ElemType =:= float
+->
+    parse_packed(Rest, ElemType, [cast(B, ElemType) | Acc]);
+parse_packed(<<B:8/binary, Rest/binary>>, ElemType, Acc) when
+    ElemType =:= fixed64; ElemType =:= sfixed64; ElemType =:= double
+->
+    parse_packed(Rest, ElemType, [cast(B, ElemType) | Acc]).
+
+parse_packed_varint(<<0:1, V:7, Rest/binary>>, Acc, Bytes) when Bytes =< 9 ->
+    {(V bsl 7 * Bytes) bor Acc, Rest};
+parse_packed_varint(<<1:1, V:7, Rest/binary>>, Acc, Bytes) when Bytes =< 9 ->
+    parse_packed_varint(Rest, (V bsl 7 * Bytes) bor Acc, Bytes + 1).

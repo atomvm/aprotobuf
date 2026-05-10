@@ -88,6 +88,33 @@ encode_field(FieldNum, V, sfixed64) when is_integer(V), V >= -(1 bsl 63), V < (1
     [encode_varint((FieldNum bsl 3) bor ?FIXED64_TAG), encode_sfixed64(V)];
 encode_field(_FieldNum, _V, sfixed64) ->
     error(badarg);
+encode_field(FieldNum, V, float) ->
+    [encode_varint((FieldNum bsl 3) bor ?FIXED32_TAG), encode_float(V)];
+encode_field(FieldNum, V, double) ->
+    [encode_varint((FieldNum bsl 3) bor ?FIXED64_TAG), encode_double(V)];
+encode_field(FieldNum, false, bool) ->
+    [encode_varint(FieldNum bsl 3), <<0>>];
+encode_field(FieldNum, true, bool) ->
+    [encode_varint(FieldNum bsl 3), <<1>>];
+encode_field(_FieldNum, _V, bool) ->
+    error(badarg);
+encode_field(_FieldNum, [], {repeated, _ElemType}) ->
+    [];
+encode_field(FieldNum, V, {repeated, ElemType}) when is_list(V) ->
+    case is_packable(ElemType) of
+        true ->
+            Body = iolist_to_binary([encode_packed_elem(E, ElemType) || E <- V]),
+            Len = byte_size(Body),
+            [encode_varint((FieldNum bsl 3) bor ?LEN_TAG), encode_varint(Len), Body];
+        false ->
+            [encode_field(FieldNum, E, ElemType) || E <- V]
+    end;
+encode_field(FieldNum, V, {map, KeyType, ValueType}) when is_map(V) ->
+    EntrySubSchema = #{key => {1, KeyType}, value => {2, ValueType}},
+    [
+        encode_field(FieldNum, #{key => K0, value => V0}, EntrySubSchema)
+     || {K0, V0} <- maps:to_list(V)
+    ];
 encode_field(FieldNum, V, MapSchema) when is_map(MapSchema) ->
     Encoded = encode(V, MapSchema),
     Len = erlang:iolist_size(Encoded),
@@ -100,6 +127,76 @@ encode_sfixed32(Int) ->
 
 encode_fixed32(Int) ->
     <<Int:32/little-unsigned-integer>>.
+
+encode_float(V) when is_number(V), abs(V) =< 3.4028234663852886e+38 ->
+    <<V:32/float-little>>;
+encode_float(infinity) ->
+    <<0, 0, 16#80, 16#7F>>;
+encode_float('-infinity') ->
+    <<0, 0, 16#80, 16#FF>>;
+encode_float(nan) ->
+    <<0, 0, 16#C0, 16#7F>>;
+encode_float(_) ->
+    error(badarg).
+
+encode_double(V) when is_number(V) ->
+    <<V:64/float-little>>;
+encode_double(infinity) ->
+    <<0, 0, 0, 0, 0, 0, 16#F0, 16#7F>>;
+encode_double('-infinity') ->
+    <<0, 0, 0, 0, 0, 0, 16#F0, 16#FF>>;
+encode_double(nan) ->
+    <<0, 0, 0, 0, 0, 0, 16#F8, 16#7F>>;
+encode_double(_) ->
+    error(badarg).
+
+is_packable(int32) -> true;
+is_packable(int64) -> true;
+is_packable(uint32) -> true;
+is_packable(uint64) -> true;
+is_packable(sint32) -> true;
+is_packable(sint64) -> true;
+is_packable(bool) -> true;
+is_packable(fixed32) -> true;
+is_packable(sfixed32) -> true;
+is_packable(fixed64) -> true;
+is_packable(sfixed64) -> true;
+is_packable(float) -> true;
+is_packable(double) -> true;
+is_packable(_) -> false.
+
+encode_packed_elem(V, int32) when is_integer(V), V >= 0, V < (1 bsl 31) ->
+    encode_varint(V);
+encode_packed_elem(V, int32) when is_integer(V), V < 0, V >= -(1 bsl 31) ->
+    encode_varint(V band 16#FFFFFFFFFFFFFFFF);
+encode_packed_elem(V, int64) when is_integer(V), V >= 0, V < (1 bsl 63) ->
+    encode_varint(V);
+encode_packed_elem(V, int64) when is_integer(V), V < 0, V >= -(1 bsl 63) ->
+    encode_varint(V band 16#FFFFFFFFFFFFFFFF);
+encode_packed_elem(false, bool) ->
+    <<0>>;
+encode_packed_elem(true, bool) ->
+    <<1>>;
+encode_packed_elem(V, fixed32) when is_integer(V), V >= 0, V < (1 bsl 32) ->
+    encode_fixed32(V);
+encode_packed_elem(V, uint32) when is_integer(V), V >= 0, V < (1 bsl 32) ->
+    encode_varint(V);
+encode_packed_elem(V, uint64) when is_integer(V), V >= 0, V < (1 bsl 64) ->
+    encode_varint(V);
+encode_packed_elem(V, sint32) when is_integer(V), V >= -(1 bsl 31), V < (1 bsl 31) ->
+    encode_varint(((V bsl 1) bxor (V bsr 31)) band 16#FFFFFFFF);
+encode_packed_elem(V, sint64) when is_integer(V), V >= -(1 bsl 63), V < (1 bsl 63) ->
+    encode_varint(((V bsl 1) bxor (V bsr 63)) band 16#FFFFFFFFFFFFFFFF);
+encode_packed_elem(V, sfixed32) ->
+    encode_sfixed32(V);
+encode_packed_elem(V, fixed64) when is_integer(V), V >= 0, V < (1 bsl 64) ->
+    encode_fixed64(V);
+encode_packed_elem(V, sfixed64) when is_integer(V), V >= -(1 bsl 63), V < (1 bsl 63) ->
+    encode_sfixed64(V);
+encode_packed_elem(V, float) ->
+    encode_float(V);
+encode_packed_elem(V, double) ->
+    encode_double(V).
 
 encode_fixed64(Int) ->
     <<Int:64/little-unsigned-integer>>.

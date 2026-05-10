@@ -720,3 +720,366 @@ encode_sfixed64_min_test() ->
         <<16#09, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#80>>,
         iolist_to_binary(aprotobuf_encoder:encode(#{a => -9223372036854775808}, Schema))
     ).
+
+encode_float_zero_test() ->
+    Schema = #{
+        a => {1, float}
+    },
+    ?assertEqual(
+        <<16#0D, 16#00, 16#00, 16#00, 16#00>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => 0.0}, Schema))
+    ).
+
+encode_float_positive_test() ->
+    Schema = #{
+        a => {1, float}
+    },
+    ?assertEqual(
+        <<16#0D, 16#00, 16#00, 16#C0, 16#3F>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => 1.5}, Schema))
+    ).
+
+encode_float_negative_test() ->
+    Schema = #{
+        a => {1, float}
+    },
+    ?assertEqual(
+        <<16#0D, 16#00, 16#00, 16#C0, 16#BF>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => -1.5}, Schema))
+    ).
+
+encode_float_positive_infinity_test() ->
+    Schema = #{
+        a => {1, float}
+    },
+    ?assertEqual(
+        <<16#0D, 16#00, 16#00, 16#80, 16#7F>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => infinity}, Schema))
+    ).
+
+encode_float_negative_infinity_test() ->
+    Schema = #{
+        a => {1, float}
+    },
+    ?assertEqual(
+        <<16#0D, 16#00, 16#00, 16#80, 16#FF>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => '-infinity'}, Schema))
+    ).
+
+encode_float_nan_test() ->
+    Schema = #{
+        a => {1, float}
+    },
+    ?assertEqual(
+        <<16#0D, 16#00, 16#00, 16#C0, 16#7F>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => nan}, Schema))
+    ).
+
+%% Integer values are auto-converted to float; 42 must produce the same wire
+%% bytes as 42.0.
+encode_float_integer_test() ->
+    Schema = #{
+        a => {1, float}
+    },
+    ?assertEqual(
+        <<16#0D, 16#00, 16#00, 16#28, 16#42>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => 42}, Schema))
+    ).
+
+encode_float_overflow_test() ->
+    Schema = #{
+        a => {1, float}
+    },
+    ?assertError(badarg, aprotobuf_encoder:encode(#{a => 1.0e40}, Schema)).
+
+encode_float_underflow_test() ->
+    Schema = #{
+        a => {1, float}
+    },
+    ?assertError(badarg, aprotobuf_encoder:encode(#{a => -1.0e40}, Schema)).
+
+encode_float_huge_integer_test() ->
+    Schema = #{
+        a => {1, float}
+    },
+    ?assertError(badarg, aprotobuf_encoder:encode(#{a => 1 bsl 200}, Schema)).
+
+encode_double_zero_test() ->
+    Schema = #{
+        a => {1, double}
+    },
+    ?assertEqual(
+        <<16#09, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => 0.0}, Schema))
+    ).
+
+encode_double_positive_test() ->
+    Schema = #{
+        a => {1, double}
+    },
+    ?assertEqual(
+        <<16#09, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#F8, 16#3F>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => 1.5}, Schema))
+    ).
+
+encode_double_negative_test() ->
+    Schema = #{
+        a => {1, double}
+    },
+    ?assertEqual(
+        <<16#09, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#F8, 16#BF>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => -1.5}, Schema))
+    ).
+
+encode_double_positive_infinity_test() ->
+    Schema = #{
+        a => {1, double}
+    },
+    ?assertEqual(
+        <<16#09, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#F0, 16#7F>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => infinity}, Schema))
+    ).
+
+encode_double_negative_infinity_test() ->
+    Schema = #{
+        a => {1, double}
+    },
+    ?assertEqual(
+        <<16#09, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#F0, 16#FF>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => '-infinity'}, Schema))
+    ).
+
+encode_double_nan_test() ->
+    Schema = #{
+        a => {1, double}
+    },
+    ?assertEqual(
+        <<16#09, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#F8, 16#7F>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => nan}, Schema))
+    ).
+
+%% Integer 42 must auto-convert to 42.0 and produce identical wire bytes.
+encode_double_integer_test() ->
+    Schema = #{
+        a => {1, double}
+    },
+    ?assertEqual(
+        <<16#09, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#45, 16#40>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => 42}, Schema))
+    ).
+
+encode_bool_false_test() ->
+    Schema = #{
+        a => {1, bool}
+    },
+    ?assertEqual(
+        <<16#08, 16#00>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => false}, Schema))
+    ).
+
+encode_bool_true_test() ->
+    Schema = #{
+        a => {1, bool}
+    },
+    ?assertEqual(
+        <<16#08, 16#01>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{a => true}, Schema))
+    ).
+
+encode_repeated_int64_packed_test() ->
+    Schema = #{
+        r => {1, {repeated, int64}}
+    },
+    Expected =
+        <<16#0A, 16#40, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#01, 16#01,
+            16#2A, 16#B4, 16#A4, 16#F8, 16#D7, 16#0C, 16#F6, 16#B0, 16#FA, 16#D7, 16#DC, 16#F9,
+            16#AA, 16#9A, 16#12, 16#00, 16#FE, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF,
+            16#FF, 16#01, 16#35, 16#00, 16#00, 16#00, 16#01, 16#01, 16#01, 16#FF, 16#FF, 16#FF,
+            16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#01, 16#FE, 16#FF, 16#FF, 16#FF, 16#FF,
+            16#FF, 16#FF, 16#FF, 16#FF, 16#01>>,
+    ?assertEqual(
+        Expected,
+        iolist_to_binary(
+            aprotobuf_encoder:encode(
+                #{
+                    r =>
+                        [
+                            -1,
+                            1,
+                            42,
+                            3405648436,
+                            1311862291833985142,
+                            0,
+                            -2,
+                            53,
+                            0,
+                            0,
+                            0,
+                            1,
+                            1,
+                            1,
+                            -1,
+                            -2
+                        ]
+                },
+                Schema
+            )
+        )
+    ).
+
+encode_repeated_bool_packed_test() ->
+    Schema = #{
+        r => {1, {repeated, bool}}
+    },
+    ?assertEqual(
+        <<16#0A, 16#0A, 16#01, 16#00, 16#01, 16#00, 16#01, 16#00, 16#01, 16#01, 16#00, 16#00>>,
+        iolist_to_binary(
+            aprotobuf_encoder:encode(
+                #{r => [true, false, true, false, true, false, true, true, false, false]},
+                Schema
+            )
+        )
+    ).
+
+encode_repeated_fixed32_packed_test() ->
+    Schema = #{
+        r => {1, {repeated, fixed32}}
+    },
+    Expected =
+        <<16#0A, 16#1C, 16#00, 16#00, 16#00, 16#00, 16#01, 16#00, 16#00, 16#00, 16#02, 16#00, 16#00,
+            16#00, 16#03, 16#00, 16#00, 16#00, 16#04, 16#00, 16#00, 16#00, 16#05, 16#00, 16#00,
+            16#00, 16#06, 16#00, 16#00, 16#00>>,
+    ?assertEqual(
+        Expected,
+        iolist_to_binary(aprotobuf_encoder:encode(#{r => [0, 1, 2, 3, 4, 5, 6]}, Schema))
+    ).
+
+encode_repeated_int32_packed_test() ->
+    Schema = #{
+        r => {1, {repeated, int32}}
+    },
+    ?assertEqual(
+        <<16#0A, 16#01, 16#01>>,
+        iolist_to_binary(aprotobuf_encoder:encode(#{r => [1]}, Schema))
+    ).
+
+encode_repeated_uint32_packed_test() ->
+    Schema = #{r => {1, {repeated, uint32}}},
+    ?assertEqual(
+        <<16#0A, 16#0B, 16#00, 16#80, 16#80, 16#80, 16#80, 16#08, 16#FF, 16#FF, 16#FF, 16#FF,
+            16#0F>>,
+        iolist_to_binary(
+            aprotobuf_encoder:encode(#{r => [0, 2147483648, 4294967295]}, Schema)
+        )
+    ).
+
+encode_repeated_uint64_packed_test() ->
+    Schema = #{r => {1, {repeated, uint64}}},
+    ?assertEqual(
+        <<16#0A, 16#15, 16#00, 16#80, 16#80, 16#80, 16#80, 16#80, 16#80, 16#80, 16#80, 16#80, 16#01,
+            16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#01>>,
+        iolist_to_binary(
+            aprotobuf_encoder:encode(
+                #{r => [0, 9223372036854775808, 18446744073709551615]}, Schema
+            )
+        )
+    ).
+
+encode_repeated_sint32_packed_test() ->
+    Schema = #{r => {1, {repeated, sint32}}},
+    ?assertEqual(
+        <<16#0A, 16#0D, 16#01, 16#00, 16#02, 16#FF, 16#FF, 16#FF, 16#FF, 16#0F, 16#FE, 16#FF, 16#FF,
+            16#FF, 16#0F>>,
+        iolist_to_binary(
+            aprotobuf_encoder:encode(#{r => [-1, 0, 1, -2147483648, 2147483647]}, Schema)
+        )
+    ).
+
+encode_repeated_sfixed32_packed_test() ->
+    Schema = #{r => {1, {repeated, sfixed32}}},
+    ?assertEqual(
+        <<16#0A, 16#10, 16#FF, 16#FF, 16#FF, 16#FF, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00,
+            16#80, 16#FF, 16#FF, 16#FF, 16#7F>>,
+        iolist_to_binary(
+            aprotobuf_encoder:encode(#{r => [-1, 0, -2147483648, 2147483647]}, Schema)
+        )
+    ).
+
+encode_repeated_fixed64_packed_test() ->
+    Schema = #{r => {1, {repeated, fixed64}}},
+    ?assertEqual(
+        <<16#0A, 16#18, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#01, 16#00, 16#00,
+            16#00, 16#00, 16#00, 16#00, 16#00, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF,
+            16#FF>>,
+        iolist_to_binary(
+            aprotobuf_encoder:encode(#{r => [0, 1, 18446744073709551615]}, Schema)
+        )
+    ).
+
+encode_repeated_sfixed64_packed_test() ->
+    Schema = #{r => {1, {repeated, sfixed64}}},
+    ?assertEqual(
+        <<16#0A, 16#20, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#00, 16#00, 16#00,
+            16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00,
+            16#80, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#7F>>,
+        iolist_to_binary(
+            aprotobuf_encoder:encode(
+                #{r => [-1, 0, -9223372036854775808, 9223372036854775807]}, Schema
+            )
+        )
+    ).
+
+encode_repeated_float_non_finite_test() ->
+    Schema = #{r => {1, {repeated, float}}},
+    ?assertEqual(
+        <<16#0A, 16#0C, 16#00, 16#00, 16#80, 16#7F, 16#00, 16#00, 16#80, 16#FF, 16#00, 16#00, 16#C0,
+            16#7F>>,
+        iolist_to_binary(
+            aprotobuf_encoder:encode(#{r => [infinity, '-infinity', nan]}, Schema)
+        )
+    ).
+
+encode_repeated_double_non_finite_test() ->
+    Schema = #{r => {1, {repeated, double}}},
+    ?assertEqual(
+        <<16#0A, 16#18, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#F0, 16#7F, 16#00, 16#00, 16#00,
+            16#00, 16#00, 16#00, 16#F0, 16#FF, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#F8,
+            16#7F>>,
+        iolist_to_binary(
+            aprotobuf_encoder:encode(#{r => [infinity, '-infinity', nan]}, Schema)
+        )
+    ).
+
+encode_repeated_string_test() ->
+    Schema = #{r => {1, {repeated, string}}},
+    Expected =
+        <<16#0A, 16#05, "Hello", 16#0A, 16#05, "World", 16#0A, 16#04, "this", 16#0A, 16#02, "is",
+            16#0A, 16#01, "a", 16#0A, 16#04, "test", 16#0A, 16#01, ".">>,
+    ?assertEqual(
+        Expected,
+        iolist_to_binary(
+            aprotobuf_encoder:encode(
+                #{
+                    r => [
+                        <<"Hello">>, <<"World">>, <<"this">>, <<"is">>, <<"a">>, <<"test">>, <<".">>
+                    ]
+                },
+                Schema
+            )
+        )
+    ).
+
+encode_map_string_int32_roundtrip_test() ->
+    Schema = #{count => {1, {map, string, int32}}},
+    DecoderSchema = aprotobuf_decoder:transform_schema(Schema),
+    Input = #{
+        count => #{
+            <<"Hello">> => 5,
+            <<"test">> => 4,
+            <<"hello">> => 5,
+            <<"ciao">> => 4,
+            <<>> => 0
+        }
+    },
+    Encoded = iolist_to_binary(aprotobuf_encoder:encode(Input, Schema)),
+    ?assertEqual(Input, aprotobuf_decoder:parse(Encoded, DecoderSchema)).
