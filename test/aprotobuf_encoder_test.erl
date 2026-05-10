@@ -1129,3 +1129,68 @@ roundtrip_map_string_msg_test() ->
     },
     Bytes = iolist_to_binary(aprotobuf_encoder:encode(Input, 'Catalog', Registry)),
     ?assertEqual(Input, aprotobuf_decoder:parse(Bytes, 'Catalog', DecRegistry)).
+
+roundtrip_oneof_test() ->
+    Schema = #{
+        result =>
+            {oneof, #{
+                text => {1, string},
+                blob => {2, bytes},
+                number => {3, int32}
+            }}
+    },
+    DecSchema = aprotobuf_decoder:transform_schema(Schema),
+    Inputs = [
+        #{result => {text, <<"hello">>}},
+        #{result => {blob, <<1, 2, 3>>}},
+        #{result => {number, 42}},
+        #{result => {number, -7}}
+    ],
+    [
+        ?assertEqual(
+            I,
+            aprotobuf_decoder:parse(
+                iolist_to_binary(aprotobuf_encoder:encode(I, Schema)),
+                DecSchema
+            )
+        )
+     || I <- Inputs
+    ].
+
+roundtrip_oneof_unset_test() ->
+    Schema = #{
+        result => {oneof, #{text => {1, string}, number => {2, int32}}},
+        keep => {3, int32}
+    },
+    DecSchema = aprotobuf_decoder:transform_schema(Schema),
+    Input = #{keep => 99},
+    Bytes = iolist_to_binary(aprotobuf_encoder:encode(Input, Schema)),
+    ?assertEqual(Input, aprotobuf_decoder:parse(Bytes, DecSchema)).
+
+roundtrip_oneof_with_ref_test() ->
+    Registry = #{
+        'Reply' => #{
+            payload =>
+                {oneof, #{
+                    ok => {1, {ref, 'Item'}},
+                    error => {2, string}
+                }}
+        },
+        'Item' => #{name => {1, string}, qty => {2, int32}}
+    },
+    DecRegistry = aprotobuf_decoder:transform_schemas(Registry),
+    Inputs = [
+        #{payload => {ok, #{name => <<"apple">>, qty => 5}}},
+        #{payload => {error, <<"not found">>}}
+    ],
+    [
+        ?assertEqual(
+            I,
+            aprotobuf_decoder:parse(
+                iolist_to_binary(aprotobuf_encoder:encode(I, 'Reply', Registry)),
+                'Reply',
+                DecRegistry
+            )
+        )
+     || I <- Inputs
+    ].

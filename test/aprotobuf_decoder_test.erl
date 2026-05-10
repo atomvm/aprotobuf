@@ -1241,3 +1241,18 @@ decode_map_string_msg_test() ->
         },
         aprotobuf_decoder:parse(Wire, 'Test', DecRegistry)
     ).
+
+decode_oneof_last_wins_test() ->
+    Schema = #{
+        result =>
+            {oneof, #{
+                text => {1, string},
+                number => {3, int32}
+            }}
+    },
+    DecSchema = aprotobuf_decoder:transform_schema(Schema),
+    Wire = <<16#0A, 16#05, "early", 16#18, 16#2A>>,
+    ?assertEqual(
+        #{result => {number, 42}},
+        aprotobuf_decoder:parse(Wire, DecSchema)
+    ).

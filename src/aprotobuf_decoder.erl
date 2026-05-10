@@ -64,6 +64,13 @@ decode_schema({K, {FieldNum, {ref, Name}}, I}, Acc) when
     is_atom(Name) and is_integer(FieldNum) and (FieldNum >= 0)
 ->
     decode_schema(maps:next(I), Acc#{FieldNum => {K, {ref, Name}}});
+decode_schema({K, {oneof, InnerSchema}, I}, Acc) when is_map(InnerSchema) ->
+    InnerTransformed = transform_schema(InnerSchema),
+    Expanded = maps:map(
+        fun(_FN, {Variant, Type}) -> {K, {oneof_variant, Variant, Type}} end,
+        InnerTransformed
+    ),
+    decode_schema(maps:next(I), maps:merge(Acc, Expanded));
 decode_schema({K, T, _I}, _Acc) ->
     error({badarg, K, T}).
 
@@ -120,6 +127,8 @@ parse_state(Bin, Schema, Registry, What, Acc) ->
 put_value(Built, Key, {repeated, ElemType}, Value, Registry) ->
     Existing = maps:get(Key, Built, []),
     maps:put(Key, Existing ++ [cast(Value, ElemType, Registry)], Built);
+put_value(Built, Key, {oneof_variant, Variant, Type}, Value, Registry) ->
+    maps:put(Key, {Variant, cast(Value, Type, Registry)}, Built);
 put_value(Built, Key, Type, Value, Registry) ->
     maps:put(Key, cast(Value, Type, Registry), Built).
 
@@ -141,6 +150,8 @@ put_len_value(Built, Key, {map, EntrySubSchema}, Bin, Registry) ->
     V0 = maps:get(value, EntryMap),
     Existing = maps:get(Key, Built, #{}),
     maps:put(Key, Existing#{K0 => V0}, Built);
+put_len_value(Built, Key, {oneof_variant, Variant, Type}, Bin, Registry) ->
+    maps:put(Key, {Variant, cast(Bin, Type, Registry)}, Built);
 put_len_value(Built, Key, Type, Bin, Registry) ->
     maps:put(Key, cast(Bin, Type, Registry), Built).
 

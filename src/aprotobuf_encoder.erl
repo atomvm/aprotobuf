@@ -36,9 +36,14 @@ encode(Map, EntryName, Registry) ->
 encode_iter(none, _Schema, _Registry, Acc) ->
     Acc;
 encode_iter({K, V, I}, Schema, Registry, Acc) ->
-    {FieldNum, Type} = maps:get(K, Schema),
-    NewAcc = [encode_field(FieldNum, V, Type, Registry) | Acc],
+    NewAcc = [encode_entry(maps:get(K, Schema), V, Registry) | Acc],
     encode_iter(maps:next(I), Schema, Registry, NewAcc).
+
+encode_entry({oneof, InnerSchema}, {Variant, V}, Registry) ->
+    {FieldNum, Type} = maps:get(Variant, InnerSchema),
+    encode_field(FieldNum, V, Type, Registry);
+encode_entry({FieldNum, Type}, V, Registry) ->
+    encode_field(FieldNum, V, Type, Registry).
 
 encode_field(FieldNum, V, bytes, _Registry) ->
     Len = erlang:iolist_size(V),
