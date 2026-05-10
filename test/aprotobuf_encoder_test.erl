@@ -1083,3 +1083,114 @@ encode_map_string_int32_roundtrip_test() ->
     },
     Encoded = iolist_to_binary(aprotobuf_encoder:encode(Input, Schema)),
     ?assertEqual(Input, aprotobuf_decoder:parse(Encoded, DecoderSchema)).
+
+roundtrip_recursive_node_test() ->
+    Registry = #{
+        'Node' => #{
+            name => {1, string},
+            children => {2, {repeated, {ref, 'Node'}}}
+        }
+    },
+    DecRegistry = aprotobuf_decoder:transform_schemas(Registry),
+    Input = #{
+        name => <<"root">>,
+        children => [
+            #{name => <<"child1">>},
+            #{
+                name => <<"child2">>,
+                children => [#{name => <<"grandchild">>}]
+            }
+        ]
+    },
+    Bytes = iolist_to_binary(aprotobuf_encoder:encode(Input, 'Node', Registry)),
+    ?assertEqual(Input, aprotobuf_decoder:parse(Bytes, 'Node', DecRegistry)).
+
+roundtrip_mutual_recursion_test() ->
+    Registry = #{
+        'A' => #{b => {1, {ref, 'B'}}},
+        'B' => #{a => {1, {ref, 'A'}}}
+    },
+    DecRegistry = aprotobuf_decoder:transform_schemas(Registry),
+    Input = #{b => #{a => #{b => #{}}}},
+    Bytes = iolist_to_binary(aprotobuf_encoder:encode(Input, 'A', Registry)),
+    ?assertEqual(Input, aprotobuf_decoder:parse(Bytes, 'A', DecRegistry)).
+
+roundtrip_map_string_msg_test() ->
+    Registry = #{
+        'Catalog' => #{items => {1, {map, string, {ref, 'Item'}}}},
+        'Item' => #{price => {1, int32}, name => {2, string}}
+    },
+    DecRegistry = aprotobuf_decoder:transform_schemas(Registry),
+    Input = #{
+        items => #{
+            <<"a">> => #{price => 100, name => <<"apple">>},
+            <<"b">> => #{price => 200, name => <<"banana">>}
+        }
+    },
+    Bytes = iolist_to_binary(aprotobuf_encoder:encode(Input, 'Catalog', Registry)),
+    ?assertEqual(Input, aprotobuf_decoder:parse(Bytes, 'Catalog', DecRegistry)).
+
+roundtrip_oneof_test() ->
+    Schema = #{
+        result =>
+            {oneof, #{
+                text => {1, string},
+                blob => {2, bytes},
+                number => {3, int32}
+            }}
+    },
+    DecSchema = aprotobuf_decoder:transform_schema(Schema),
+    Inputs = [
+        #{result => {text, <<"hello">>}},
+        #{result => {blob, <<1, 2, 3>>}},
+        #{result => {number, 42}},
+        #{result => {number, -7}}
+    ],
+    [
+        ?assertEqual(
+            I,
+            aprotobuf_decoder:parse(
+                iolist_to_binary(aprotobuf_encoder:encode(I, Schema)),
+                DecSchema
+            )
+        )
+     || I <- Inputs
+    ].
+
+roundtrip_oneof_unset_test() ->
+    Schema = #{
+        result => {oneof, #{text => {1, string}, number => {2, int32}}},
+        keep => {3, int32}
+    },
+    DecSchema = aprotobuf_decoder:transform_schema(Schema),
+    Input = #{keep => 99},
+    Bytes = iolist_to_binary(aprotobuf_encoder:encode(Input, Schema)),
+    ?assertEqual(Input, aprotobuf_decoder:parse(Bytes, DecSchema)).
+
+roundtrip_oneof_with_ref_test() ->
+    Registry = #{
+        'Reply' => #{
+            payload =>
+                {oneof, #{
+                    ok => {1, {ref, 'Item'}},
+                    error => {2, string}
+                }}
+        },
+        'Item' => #{name => {1, string}, qty => {2, int32}}
+    },
+    DecRegistry = aprotobuf_decoder:transform_schemas(Registry),
+    Inputs = [
+        #{payload => {ok, #{name => <<"apple">>, qty => 5}}},
+        #{payload => {error, <<"not found">>}}
+    ],
+    [
+        ?assertEqual(
+            I,
+            aprotobuf_decoder:parse(
+                iolist_to_binary(aprotobuf_encoder:encode(I, 'Reply', Registry)),
+                'Reply',
+                DecRegistry
+            )
+        )
+     || I <- Inputs
+    ].

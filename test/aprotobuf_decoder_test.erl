@@ -1213,3 +1213,46 @@ decode_map_string_int32_test() ->
         },
         aprotobuf_decoder:parse(Wire, DecoderSchema)
     ).
+
+decode_map_string_msg_test() ->
+    Registry = #{
+        'M' => #{
+            s => {1, string},
+            i => {2, int32},
+            d => {3, double},
+            ri => {4, {repeated, int64}}
+        },
+        'Test' => #{m => {1, {map, string, {ref, 'M'}}}}
+    },
+    DecRegistry = aprotobuf_decoder:transform_schemas(Registry),
+    Wire =
+        <<16#0A, 16#29, 16#0A, 16#05, "test1", 16#12, 16#20, 16#0A, 16#05, "hello", 16#10, 16#59,
+            16#19, 16#00, 16#00, 16#00, 16#00, 16#00, 16#00, 16#45, 16#40, 16#22, 16#0C, 16#00,
+            16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#01, 16#02, 16#0A,
+            16#29, 16#0A, 16#05, "test2", 16#12, 16#20, 16#0A, 16#05, "world", 16#10, 16#5E, 16#19,
+            16#00, 16#00, 16#00, 16#00, 16#00, 16#40, 16#54, 16#40, 16#22, 16#0C, 16#FF, 16#FF,
+            16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#FF, 16#01, 16#00, 16#01>>,
+    ?assertEqual(
+        #{
+            m => #{
+                <<"test1">> => #{s => <<"hello">>, i => 89, d => 42.0, ri => [0, -1, 2]},
+                <<"test2">> => #{s => <<"world">>, i => 94, d => 81.0, ri => [-1, 0, 1]}
+            }
+        },
+        aprotobuf_decoder:parse(Wire, 'Test', DecRegistry)
+    ).
+
+decode_oneof_last_wins_test() ->
+    Schema = #{
+        result =>
+            {oneof, #{
+                text => {1, string},
+                number => {3, int32}
+            }}
+    },
+    DecSchema = aprotobuf_decoder:transform_schema(Schema),
+    Wire = <<16#0A, 16#05, "early", 16#18, 16#2A>>,
+    ?assertEqual(
+        #{result => {number, 42}},
+        aprotobuf_decoder:parse(Wire, DecSchema)
+    ).

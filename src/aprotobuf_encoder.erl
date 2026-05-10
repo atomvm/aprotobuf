@@ -19,107 +19,126 @@
 %
 
 -module(aprotobuf_encoder).
--export([encode/2]).
+-export([encode/2, encode/3]).
 
 -define(LEN_TAG, 2).
 -define(FIXED32_TAG, 5).
 -define(FIXED64_TAG, 1).
 
 encode(Map, Schema) ->
+    encode(Map, root, #{root => Schema}).
+
+encode(Map, EntryName, Registry) ->
+    Schema = maps:get(EntryName, Registry),
     Iterator = maps:iterator(Map),
-    encode(maps:next(Iterator), Schema, [<<>>]).
+    encode_iter(maps:next(Iterator), Schema, Registry, [<<>>]).
 
-encode(none, _Schema, Acc) ->
+encode_iter(none, _Schema, _Registry, Acc) ->
     Acc;
-encode({K, V, I}, Schema, Acc) ->
-    {FieldNum, Type} = maps:get(K, Schema),
-    NewAcc = [encode_field(FieldNum, V, Type) | Acc],
-    encode(maps:next(I), Schema, NewAcc).
+encode_iter({K, V, I}, Schema, Registry, Acc) ->
+    NewAcc = [encode_entry(maps:get(K, Schema), V, Registry) | Acc],
+    encode_iter(maps:next(I), Schema, Registry, NewAcc).
 
-encode_field(FieldNum, V, bytes) ->
+encode_entry({oneof, InnerSchema}, {Variant, V}, Registry) ->
+    {FieldNum, Type} = maps:get(Variant, InnerSchema),
+    encode_field(FieldNum, V, Type, Registry);
+encode_entry({FieldNum, Type}, V, Registry) ->
+    encode_field(FieldNum, V, Type, Registry).
+
+encode_field(FieldNum, V, bytes, _Registry) ->
     Len = erlang:iolist_size(V),
     [encode_varint((FieldNum bsl 3) bor ?LEN_TAG), encode_varint(Len), V];
-encode_field(FieldNum, V, string) ->
-    encode_field(FieldNum, V, bytes);
-encode_field(FieldNum, V, {enum, LabelsToInt}) ->
+encode_field(FieldNum, V, string, Registry) ->
+    encode_field(FieldNum, V, bytes, Registry);
+encode_field(FieldNum, V, {enum, LabelsToInt}, _Registry) ->
     IntVal = maps:get(V, LabelsToInt),
     [encode_varint(FieldNum bsl 3), encode_varint(IntVal)];
-encode_field(FieldNum, V, int32) when is_integer(V), V >= 0, V < (1 bsl 31) ->
+encode_field(FieldNum, V, int32, _Registry) when is_integer(V), V >= 0, V < (1 bsl 31) ->
     [encode_varint(FieldNum bsl 3), encode_varint(V)];
-encode_field(FieldNum, V, int32) when is_integer(V), V < 0, V >= -(1 bsl 31) ->
+encode_field(FieldNum, V, int32, _Registry) when is_integer(V), V < 0, V >= -(1 bsl 31) ->
     [encode_varint(FieldNum bsl 3), encode_varint(V band 16#FFFFFFFFFFFFFFFF)];
-encode_field(_FieldNum, _V, int32) ->
+encode_field(_FieldNum, _V, int32, _Registry) ->
     error(badarg);
-encode_field(FieldNum, V, int64) when is_integer(V), V >= 0, V < (1 bsl 63) ->
+encode_field(FieldNum, V, int64, _Registry) when is_integer(V), V >= 0, V < (1 bsl 63) ->
     [encode_varint(FieldNum bsl 3), encode_varint(V)];
-encode_field(FieldNum, V, int64) when is_integer(V), V < 0, V >= -(1 bsl 63) ->
+encode_field(FieldNum, V, int64, _Registry) when is_integer(V), V < 0, V >= -(1 bsl 63) ->
     [encode_varint(FieldNum bsl 3), encode_varint(V band 16#FFFFFFFFFFFFFFFF)];
-encode_field(_FieldNum, _V, int64) ->
+encode_field(_FieldNum, _V, int64, _Registry) ->
     error(badarg);
-encode_field(FieldNum, V, uint32) when is_integer(V), V >= 0, V < (1 bsl 32) ->
+encode_field(FieldNum, V, uint32, _Registry) when is_integer(V), V >= 0, V < (1 bsl 32) ->
     [encode_varint(FieldNum bsl 3), encode_varint(V)];
-encode_field(_FieldNum, _V, uint32) ->
+encode_field(_FieldNum, _V, uint32, _Registry) ->
     error(badarg);
-encode_field(FieldNum, V, uint64) when is_integer(V), V >= 0, V < (1 bsl 64) ->
+encode_field(FieldNum, V, uint64, _Registry) when is_integer(V), V >= 0, V < (1 bsl 64) ->
     [encode_varint(FieldNum bsl 3), encode_varint(V)];
-encode_field(_FieldNum, _V, uint64) ->
+encode_field(_FieldNum, _V, uint64, _Registry) ->
     error(badarg);
-encode_field(FieldNum, V, sint32) when is_integer(V), V >= -(1 bsl 31), V < (1 bsl 31) ->
+encode_field(FieldNum, V, sint32, _Registry) when
+    is_integer(V), V >= -(1 bsl 31), V < (1 bsl 31)
+->
     Z = ((V bsl 1) bxor (V bsr 31)) band 16#FFFFFFFF,
     [encode_varint(FieldNum bsl 3), encode_varint(Z)];
-encode_field(_FieldNum, _V, sint32) ->
+encode_field(_FieldNum, _V, sint32, _Registry) ->
     error(badarg);
-encode_field(FieldNum, V, sint64) when is_integer(V), V >= -(1 bsl 63), V < (1 bsl 63) ->
+encode_field(FieldNum, V, sint64, _Registry) when
+    is_integer(V), V >= -(1 bsl 63), V < (1 bsl 63)
+->
     Z = ((V bsl 1) bxor (V bsr 63)) band 16#FFFFFFFFFFFFFFFF,
     [encode_varint(FieldNum bsl 3), encode_varint(Z)];
-encode_field(_FieldNum, _V, sint64) ->
+encode_field(_FieldNum, _V, sint64, _Registry) ->
     error(badarg);
-encode_field(FieldNum, V, sfixed32) ->
+encode_field(FieldNum, V, sfixed32, _Registry) ->
     [encode_varint((FieldNum bsl 3) bor ?FIXED32_TAG), encode_sfixed32(V)];
-encode_field(FieldNum, V, fixed32) when is_integer(V), V >= 0, V < (1 bsl 32) ->
+encode_field(FieldNum, V, fixed32, _Registry) when is_integer(V), V >= 0, V < (1 bsl 32) ->
     [encode_varint((FieldNum bsl 3) bor ?FIXED32_TAG), encode_fixed32(V)];
-encode_field(_FieldNum, _V, fixed32) ->
+encode_field(_FieldNum, _V, fixed32, _Registry) ->
     error(badarg);
-encode_field(FieldNum, V, fixed64) when is_integer(V), V >= 0, V < (1 bsl 64) ->
+encode_field(FieldNum, V, fixed64, _Registry) when is_integer(V), V >= 0, V < (1 bsl 64) ->
     [encode_varint((FieldNum bsl 3) bor ?FIXED64_TAG), encode_fixed64(V)];
-encode_field(_FieldNum, _V, fixed64) ->
+encode_field(_FieldNum, _V, fixed64, _Registry) ->
     error(badarg);
-encode_field(FieldNum, V, sfixed64) when is_integer(V), V >= -(1 bsl 63), V < (1 bsl 63) ->
+encode_field(FieldNum, V, sfixed64, _Registry) when
+    is_integer(V), V >= -(1 bsl 63), V < (1 bsl 63)
+->
     [encode_varint((FieldNum bsl 3) bor ?FIXED64_TAG), encode_sfixed64(V)];
-encode_field(_FieldNum, _V, sfixed64) ->
+encode_field(_FieldNum, _V, sfixed64, _Registry) ->
     error(badarg);
-encode_field(FieldNum, V, float) ->
+encode_field(FieldNum, V, float, _Registry) ->
     [encode_varint((FieldNum bsl 3) bor ?FIXED32_TAG), encode_float(V)];
-encode_field(FieldNum, V, double) ->
+encode_field(FieldNum, V, double, _Registry) ->
     [encode_varint((FieldNum bsl 3) bor ?FIXED64_TAG), encode_double(V)];
-encode_field(FieldNum, false, bool) ->
+encode_field(FieldNum, false, bool, _Registry) ->
     [encode_varint(FieldNum bsl 3), <<0>>];
-encode_field(FieldNum, true, bool) ->
+encode_field(FieldNum, true, bool, _Registry) ->
     [encode_varint(FieldNum bsl 3), <<1>>];
-encode_field(_FieldNum, _V, bool) ->
+encode_field(_FieldNum, _V, bool, _Registry) ->
     error(badarg);
-encode_field(_FieldNum, [], {repeated, _ElemType}) ->
+encode_field(_FieldNum, [], {repeated, _ElemType}, _Registry) ->
     [];
-encode_field(FieldNum, V, {repeated, ElemType}) when is_list(V) ->
+encode_field(FieldNum, V, {repeated, ElemType}, Registry) when is_list(V) ->
     case is_packable(ElemType) of
         true ->
             Body = iolist_to_binary([encode_packed_elem(E, ElemType) || E <- V]),
             Len = byte_size(Body),
             [encode_varint((FieldNum bsl 3) bor ?LEN_TAG), encode_varint(Len), Body];
         false ->
-            [encode_field(FieldNum, E, ElemType) || E <- V]
+            [encode_field(FieldNum, E, ElemType, Registry) || E <- V]
     end;
-encode_field(FieldNum, V, {map, KeyType, ValueType}) when is_map(V) ->
+encode_field(FieldNum, V, {map, KeyType, ValueType}, Registry) when is_map(V) ->
     EntrySubSchema = #{key => {1, KeyType}, value => {2, ValueType}},
     [
-        encode_field(FieldNum, #{key => K0, value => V0}, EntrySubSchema)
+        encode_field(FieldNum, #{key => K0, value => V0}, EntrySubSchema, Registry)
      || {K0, V0} <- maps:to_list(V)
     ];
-encode_field(FieldNum, V, MapSchema) when is_map(MapSchema) ->
-    Encoded = encode(V, MapSchema),
+encode_field(FieldNum, V, {ref, Name}, Registry) ->
+    Schema = maps:get(Name, Registry),
+    encode_field(FieldNum, V, Schema, Registry);
+encode_field(FieldNum, V, MapSchema, Registry) when is_map(MapSchema) ->
+    Iterator = maps:iterator(V),
+    Encoded = encode_iter(maps:next(Iterator), MapSchema, Registry, [<<>>]),
     Len = erlang:iolist_size(Encoded),
     [encode_varint((FieldNum bsl 3) bor ?LEN_TAG), encode_varint(Len), Encoded];
-encode_field(_FiledNum, _V, _Type) ->
+encode_field(_FiledNum, _V, _Type, _Registry) ->
     [].
 
 encode_sfixed32(Int) ->
