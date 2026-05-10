@@ -88,10 +88,10 @@ parse(Bin, Schema, What, Acc) ->
             parse(Rest, Schema, tag, NewAcc)
     end.
 
-parse_varint(<<0:1, IntValue:7, Rest/binary>>, IntAcc, Bytes, Next, Schema, Acc) when Bytes =< 10 ->
+parse_varint(<<0:1, IntValue:7, Rest/binary>>, IntAcc, Bytes, Next, Schema, Acc) when Bytes =< 9 ->
     VarInt = (IntValue bsl 7 * Bytes) bor IntAcc,
     parse(Rest, Schema, Next, [VarInt | Acc]);
-parse_varint(<<1:1, IntValue:7, Rest/binary>>, IntAcc, Bytes, Next, Schema, Acc) when Bytes =< 10 ->
+parse_varint(<<1:1, IntValue:7, Rest/binary>>, IntAcc, Bytes, Next, Schema, Acc) when Bytes =< 9 ->
     VarInt = (IntValue bsl 7 * Bytes) bor IntAcc,
     parse_varint(Rest, VarInt, Bytes + 1, Next, Schema, Acc);
 parse_varint(Bin, _IntAcc, _Bytes, _Next, _Schema, Acc) ->
@@ -104,7 +104,23 @@ parse_fixed64(<<Fixed64:8/binary, Rest/binary>>, Next, Schema, Acc) ->
     parse(Rest, Schema, Next, [Fixed64 | Acc]).
 
 cast(Value, int32) ->
+    case Value bsr 63 of
+        0 -> Value;
+        _ -> Value - (1 bsl 64)
+    end;
+cast(Value, int64) ->
+    case Value bsr 63 of
+        0 -> Value;
+        _ -> Value - (1 bsl 64)
+    end;
+cast(Value, uint32) ->
     Value;
+cast(Value, uint64) ->
+    Value;
+cast(Value, sint32) ->
+    (Value bsr 1) bxor -(Value band 1);
+cast(Value, sint64) ->
+    (Value bsr 1) bxor -(Value band 1);
 cast(Value, {enum, IntToLabels}) ->
     case maps:find(Value, IntToLabels) of
         {ok, Label} -> Label;
@@ -113,6 +129,10 @@ cast(Value, {enum, IntToLabels}) ->
 cast(<<Value:32/integer-little-unsigned>>, fixed32) ->
     Value;
 cast(<<Value:32/integer-little-signed>>, sfixed32) ->
+    Value;
+cast(<<Value:64/integer-little-unsigned>>, fixed64) ->
+    Value;
+cast(<<Value:64/integer-little-signed>>, sfixed64) ->
     Value;
 cast(<<Value:32/float-little>>, float) ->
     Value;

@@ -23,6 +23,7 @@
 
 -define(LEN_TAG, 2).
 -define(FIXED32_TAG, 5).
+-define(FIXED64_TAG, 1).
 
 encode(Map, Schema) ->
     Iterator = maps:iterator(Map),
@@ -43,10 +44,50 @@ encode_field(FieldNum, V, string) ->
 encode_field(FieldNum, V, {enum, LabelsToInt}) ->
     IntVal = maps:get(V, LabelsToInt),
     [encode_varint(FieldNum bsl 3), encode_varint(IntVal)];
-encode_field(FieldNum, V, int32) ->
+encode_field(FieldNum, V, int32) when is_integer(V), V >= 0, V < (1 bsl 31) ->
     [encode_varint(FieldNum bsl 3), encode_varint(V)];
+encode_field(FieldNum, V, int32) when is_integer(V), V < 0, V >= -(1 bsl 31) ->
+    [encode_varint(FieldNum bsl 3), encode_varint(V band 16#FFFFFFFFFFFFFFFF)];
+encode_field(_FieldNum, _V, int32) ->
+    error(badarg);
+encode_field(FieldNum, V, int64) when is_integer(V), V >= 0, V < (1 bsl 63) ->
+    [encode_varint(FieldNum bsl 3), encode_varint(V)];
+encode_field(FieldNum, V, int64) when is_integer(V), V < 0, V >= -(1 bsl 63) ->
+    [encode_varint(FieldNum bsl 3), encode_varint(V band 16#FFFFFFFFFFFFFFFF)];
+encode_field(_FieldNum, _V, int64) ->
+    error(badarg);
+encode_field(FieldNum, V, uint32) when is_integer(V), V >= 0, V < (1 bsl 32) ->
+    [encode_varint(FieldNum bsl 3), encode_varint(V)];
+encode_field(_FieldNum, _V, uint32) ->
+    error(badarg);
+encode_field(FieldNum, V, uint64) when is_integer(V), V >= 0, V < (1 bsl 64) ->
+    [encode_varint(FieldNum bsl 3), encode_varint(V)];
+encode_field(_FieldNum, _V, uint64) ->
+    error(badarg);
+encode_field(FieldNum, V, sint32) when is_integer(V), V >= -(1 bsl 31), V < (1 bsl 31) ->
+    Z = ((V bsl 1) bxor (V bsr 31)) band 16#FFFFFFFF,
+    [encode_varint(FieldNum bsl 3), encode_varint(Z)];
+encode_field(_FieldNum, _V, sint32) ->
+    error(badarg);
+encode_field(FieldNum, V, sint64) when is_integer(V), V >= -(1 bsl 63), V < (1 bsl 63) ->
+    Z = ((V bsl 1) bxor (V bsr 63)) band 16#FFFFFFFFFFFFFFFF,
+    [encode_varint(FieldNum bsl 3), encode_varint(Z)];
+encode_field(_FieldNum, _V, sint64) ->
+    error(badarg);
 encode_field(FieldNum, V, sfixed32) ->
     [encode_varint((FieldNum bsl 3) bor ?FIXED32_TAG), encode_sfixed32(V)];
+encode_field(FieldNum, V, fixed32) when is_integer(V), V >= 0, V < (1 bsl 32) ->
+    [encode_varint((FieldNum bsl 3) bor ?FIXED32_TAG), encode_fixed32(V)];
+encode_field(_FieldNum, _V, fixed32) ->
+    error(badarg);
+encode_field(FieldNum, V, fixed64) when is_integer(V), V >= 0, V < (1 bsl 64) ->
+    [encode_varint((FieldNum bsl 3) bor ?FIXED64_TAG), encode_fixed64(V)];
+encode_field(_FieldNum, _V, fixed64) ->
+    error(badarg);
+encode_field(FieldNum, V, sfixed64) when is_integer(V), V >= -(1 bsl 63), V < (1 bsl 63) ->
+    [encode_varint((FieldNum bsl 3) bor ?FIXED64_TAG), encode_sfixed64(V)];
+encode_field(_FieldNum, _V, sfixed64) ->
+    error(badarg);
 encode_field(FieldNum, V, MapSchema) when is_map(MapSchema) ->
     Encoded = encode(V, MapSchema),
     Len = erlang:iolist_size(Encoded),
@@ -57,37 +98,23 @@ encode_field(_FiledNum, _V, _Type) ->
 encode_sfixed32(Int) ->
     <<Int:32/little-signed-integer>>.
 
-% TODO: right now we focus to positive ints up to UINT32_MAX and something
-encode_varint(Int) when Int < 0 ->
-    error(badarg);
-% 2^7 - 1
-encode_varint(Int) when Int =< 127 ->
+encode_fixed32(Int) ->
+    <<Int:32/little-unsigned-integer>>.
+
+encode_fixed64(Int) ->
+    <<Int:64/little-unsigned-integer>>.
+
+encode_sfixed64(Int) ->
+    <<Int:64/little-signed-integer>>.
+
+encode_varint(Int) when is_integer(Int), Int >= 0, Int < 128 ->
     [Int];
-% 2^14 - 1
-encode_varint(Int) when Int =< 16383 ->
-    Int0 = Int band 16#7F,
-    Int1 = Int bsr 7,
-    <<1:1, Int0:7, 0:1, Int1:7>>;
-% 2^21 - 1
-encode_varint(Int) when Int =< 2097151 ->
-    Int0 = Int band 16#7F,
-    Int1 = (Int bsr 7) band 16#7F,
-    Int2 = Int bsr 14,
-    <<1:1, Int0:7, 1:1, Int1:7, 0:1, Int2:7>>;
-% 2^28 - 1
-encode_varint(Int) when Int =< 268435456 ->
-    Int0 = Int band 16#7F,
-    Int1 = (Int bsr 7) band 16#7F,
-    Int2 = (Int bsr 14) band 16#7F,
-    Int3 = Int bsr 21,
-    <<1:1, Int0:7, 0:1, Int1:7, 0:1, Int2:7, 0:1, Int3:7>>;
-% 2^35 - 1
-encode_varint(Int) when Int =< 34359738367 ->
-    Int0 = Int band 16#7F,
-    Int1 = (Int bsr 7) band 16#7F,
-    Int2 = (Int bsr 14) band 16#7F,
-    Int3 = (Int bsr 21) band 16#7F,
-    Int4 = Int bsr 28,
-    <<1:1, Int0:7, 1:1, Int1:7, 1:1, Int2:7, 1:1, Int3:7, 0:1, Int4:7>>;
+encode_varint(Int) when is_integer(Int), Int >= 128, Int < (1 bsl 64) ->
+    encode_varint_more(Int);
 encode_varint(_Int) ->
     error(badarg).
+
+encode_varint_more(Int) when Int < 128 ->
+    [Int];
+encode_varint_more(Int) ->
+    [(Int band 16#7F) bor 16#80 | encode_varint_more(Int bsr 7)].
